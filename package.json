@@ -1,0 +1,76 @@
+{
+  "name": "llamune",
+  "version": "0.1.0",
+  "description": "クローズドネットワーク環境で複数のローカルLLMを比較・活用するプラットフォーム",
+  "main": "dist/index.js",
+  "bin": {
+    "llamune": "./bin/llamune.js",
+    "llmn": "./bin/llmn.js"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "api": "tsx src/api/server.ts",
+    "api:build": "tsc && node dist/api/server.js",
+    "test": "vitest",
+    "lint": "eslint src --ext .ts,.tsx",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "check-db": "tsx scripts/check-db.ts",
+    "test-auth": "tsx scripts/test-auth-migration.ts",
+    "update-models": "tsx scripts/update-recommended-models.ts",
+    "migrate": "tsx scripts/migrate-add-model-column.ts",
+    "migrate:deleted-at": "tsx scripts/migrate-add-deleted-at.ts",
+    "migrate:presets": "tsx scripts/migrate-add-parameter-presets.ts",
+    "migrate:remove-precise": "tsx scripts/migrate-remove-precise-preset.ts",
+    "migrate:default-preset": "tsx scripts/migrate-update-default-preset.ts",
+    "migrate:session-title": "tsx scripts/migrate-add-session-title.ts",
+    "migrate:auth": "tsx scripts/migrate-add-auth.ts",
+    "migrate:domain-modes": "tsx scripts/migrate-add-domain-modes.ts",
+    "migrate:replace-domains": "tsx scripts/migrate-replace-domains.ts"
+  },
+  "keywords": [
+    "llm",
+    "ollama",
+    "cli",
+    "local",
+    "ai"
+  ],
+  "author": "mop",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "better-sqlite3": "^9.2.2",
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "cors": "^2.8.5",
+    "cosmiconfig": "^9.0.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.2.1",
+    "ink": "^4.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "react": "^18.2.0",
+    "systeminformation": "^5.27.11"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.10.6",
+    "@types/react": "^18.2.46",
+    "@typescript-eslint/eslint-plugin": "^6.16.0",
+    "@typescript-eslint/parser": "^6.16.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.1.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.1.0"
+  }
+}
