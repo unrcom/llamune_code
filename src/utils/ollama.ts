@@ -265,9 +265,15 @@ export async function deleteModel(modelName: string): Promise<boolean> {
  * Chat メッセージの型定義
  */
 export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
   model?: string; // どのモデルが生成したメッセージか（assistantの場合）
+  tool_calls?: Array<{
+    function: {
+      name: string;
+      arguments: Record<string, any>;
+    };
+  }>;
 }
 
 /**

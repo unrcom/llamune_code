@@ -15,7 +15,10 @@ import {
   getParameterPresetById,
   getAllParameterPresets,
   updateSessionModel,
+  setSessionRepository,
 } from '../utils/database.js';
+import { repositoryTools, type OllamaTool } from '../utils/repository-tools.js';
+import { executeRepositoryTool } from '../utils/tool-executor.js';
 
 /**
  * チャットセッションクラス
@@ -27,6 +30,8 @@ export class ChatSession {
   private parameters?: ChatParameters;
   private userId?: number;
   private systemPrompt?: string;
+  private repositoryId?: number;
+  private workingBranch?: string;
 
   constructor(
     model: string,
@@ -34,7 +39,9 @@ export class ChatSession {
     messages?: ChatMessage[],
     parameters?: ChatParameters,
     userId?: number,
-    systemPrompt?: string
+    systemPrompt?: string,
+    repositoryId?: number,
+    workingBranch?: string
   ) {
     this.model = model;
     this.sessionId = sessionId || null;
@@ -42,6 +49,8 @@ export class ChatSession {
     this.parameters = parameters;
     this.userId = userId;
     this.systemPrompt = systemPrompt;
+    this.repositoryId = repositoryId;
+    this.workingBranch = workingBranch;
 
     // system promptが指定されていて、messagesが空またはsystem roleがない場合、先頭に追加
     if (systemPrompt && (this.messages.length === 0 || this.messages[0].role !== 'system')) {
@@ -63,69 +72,145 @@ export class ChatSession {
     });
 
     let fullResponse = '';
-
-    // Ollama API を直接呼び出してストリーミング
     const OLLAMA_BASE_URL = 'http://localhost:11434';
-    const request = {
-      model: this.model,
-      messages: this.messages,
-      stream: true,
-      options: this.parameters,
-    };
 
-    try {
-      const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
+    // ツール呼び出しループ（LLMがツールを使わなくなるまで繰り返す）
+    let continueLoop = true;
+    while (continueLoop) {
+      const request: any = {
+        model: this.model,
+        messages: this.messages,
+        stream: true,
+        options: this.parameters,
+      };
 
-      if (!response.ok) {
-        throw new Error(`Chat API error: ${response.statusText}`);
+      // リポジトリが紐付いている場合はツールを含める
+      if (this.repositoryId) {
+        request.tools = repositoryTools;
       }
 
-      if (!response.body) {
-        throw new Error('レスポンスボディがありません');
-      }
+      try {
+        const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request),
+        });
 
-      // ストリーミングレスポンスを処理
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
+        if (!response.ok) {
+          throw new Error(`Chat API error: ${response.statusText}`);
+        }
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        if (!response.body) {
+          throw new Error('レスポンスボディがありません');
+        }
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter((line) => line.trim());
+        // ストリーミングレスポンスを処理
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let assistantMessage = '';
+        let toolCalls: any[] = [];
 
-        for (const line of lines) {
-          try {
-            const data = JSON.parse(line);
-            if (data.message?.content) {
-              fullResponse += data.message.content;
-              yield fullResponse; // 累積的な内容を yield
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n').filter((line) => line.trim());
+
+          for (const line of lines) {
+            try {
+              const data = JSON.parse(line);
+
+              // 通常のコンテンツ
+              if (data.message?.content) {
+                assistantMessage += data.message.content;
+                fullResponse = assistantMessage;
+                yield fullResponse;
+              }
+
+              // ツール呼び出し
+              if (data.message?.tool_calls && data.message.tool_calls.length > 0) {
+                toolCalls = data.message.tool_calls;
+              }
+
+              // ストリーム完了チェック
+              if (data.done) {
+                // ツール呼び出しがある場合
+                if (toolCalls.length > 0) {
+                  // アシスタントのツール呼び出しメッセージを追加
+                  this.messages.push({
+                    role: 'assistant',
+                    content: assistantMessage || '',
+                    tool_calls: toolCalls,
+                  });
+
+                  // 各ツールを実行してtoolメッセージを追加
+                  for (const toolCall of toolCalls) {
+                    const functionName = toolCall.function.name;
+                    const args = toolCall.function.arguments;
+
+                    // ユーザーにツール実行を通知
+                    const toolNotification = `\n[🔧 Executing: ${functionName}(${JSON.stringify(args).substring(0, 50)}...)]\n`;
+                    fullResponse += toolNotification;
+                    yield fullResponse;
+
+                    // ツールを実行
+                    const result = await executeRepositoryTool(
+                      this.repositoryId!,
+                      functionName,
+                      args
+                    );
+
+                    // toolメッセージとして結果を追加
+                    this.messages.push({
+                      role: 'tool',
+                      content: JSON.stringify(result),
+                    });
+
+                    // 実行結果を通知
+                    const resultNotification = `[✓ ${functionName}: ${result.success ? 'Success' : 'Failed'}]\n`;
+                    fullResponse += resultNotification;
+                    yield fullResponse;
+                  }
+
+                  // ツール実行後、再度LLMに問い合わせ（ループ継続）
+                  continueLoop = true;
+                  assistantMessage = '';
+                  toolCalls = [];
+                } else {
+                  // ツール呼び出しがない場合は終了
+                  continueLoop = false;
+
+                  // アシスタントの応答を追加
+                  if (assistantMessage) {
+                    this.messages.push({
+                      role: 'assistant',
+                      content: assistantMessage,
+                      model: this.model,
+                    });
+                  }
+                }
+                break;
+              }
+            } catch {
+              // JSON パースエラーは無視
             }
-          } catch {
-            // JSON パースエラーは無視
           }
         }
+      } catch (error) {
+        if (error instanceof Error) {
+          throw new Error(`Chat エラー: ${error.message}`);
+        }
+        throw new Error('不明なエラーが発生しました');
       }
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(`Chat エラー: ${error.message}`);
-      }
-      throw new Error('不明なエラーが発生しました');
-    }
 
-    // アシスタントの応答を追加
-    this.messages.push({
-      role: 'assistant',
-      content: fullResponse,
-      model: this.model,
-    });
+      // ツールループを継続する場合はここで次のイテレーションへ
+      if (!continueLoop) {
+        break;
+      }
+    }
 
     return fullResponse;
   }
@@ -287,12 +372,47 @@ export class ChatSession {
         ? this.messages.slice(-1)  // assistantのみ
         : this.messages.slice(-2); // user + assistant
       appendMessagesToSession(this.sessionId, newMessages);
+
+      // リポジトリ情報を保存
+      if (this.repositoryId) {
+        setSessionRepository(this.sessionId, this.repositoryId, this.workingBranch);
+      }
+
       return this.sessionId;
     } else {
       // 新規セッション作成
       this.sessionId = saveConversation(this.model, this.messages, this.userId);
+
+      // リポジトリ情報を保存
+      if (this.repositoryId) {
+        setSessionRepository(this.sessionId, this.repositoryId, this.workingBranch);
+      }
+
       return this.sessionId;
     }
+  }
+
+  /**
+   * リポジトリを設定
+   */
+  setRepository(repositoryId: number, workingBranch?: string): void {
+    this.repositoryId = repositoryId;
+    this.workingBranch = workingBranch;
+
+    // 既存セッションの場合はDBも更新
+    if (this.sessionId) {
+      setSessionRepository(this.sessionId, repositoryId, workingBranch);
+    }
+  }
+
+  /**
+   * リポジトリ情報を取得
+   */
+  getRepository(): { repositoryId?: number; workingBranch?: string } {
+    return {
+      repositoryId: this.repositoryId,
+      workingBranch: this.workingBranch,
+    };
   }
 
   /**
@@ -330,7 +450,10 @@ export class ChatSession {
       sessionId,
       sessionData.messages,
       undefined,
-      sessionData.session.user_id
+      sessionData.session.user_id,
+      undefined,
+      sessionData.session.repository_id || undefined,
+      sessionData.session.working_branch || undefined
     );
   }
 }

@@ -346,7 +346,7 @@ export function updateSessionTitle(sessionId: number, title: string, userId?: nu
  * @param userId - ユーザーID（指定された場合、所有者チェックを行う）
  */
 export function getSession(sessionId: number, userId?: number): {
-  session: ChatSession & { user_id?: number };
+  session: ChatSession & { user_id?: number; repository_id?: number; working_branch?: string };
   messages: ChatMessage[];
 } | null {
   const db = initDatabase();
@@ -359,6 +359,8 @@ export function getSession(sessionId: number, userId?: number): {
         s.id,
         s.model,
         s.user_id,
+        s.repository_id,
+        s.working_branch,
         s.created_at,
         s.updated_at,
         COUNT(m.id) as message_count,
@@ -375,7 +377,7 @@ export function getSession(sessionId: number, userId?: number): {
       GROUP BY s.id
     `
     )
-    .get(sessionId) as (ChatSession & { user_id?: number }) | undefined;
+    .get(sessionId) as (ChatSession & { user_id?: number; repository_id?: number; working_branch?: string }) | undefined;
 
   if (!session) {
     db.close();

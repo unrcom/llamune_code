@@ -26,7 +26,7 @@ const router = Router();
  */
 router.post('/messages', async (req: Request, res: Response) => {
   try {
-    const { sessionId, content, modelName, presetId, history, domainPromptId } = req.body as ChatMessagesRequest;
+    const { sessionId, content, modelName, presetId, history, domainPromptId, repositoryId, workingBranch } = req.body as ChatMessagesRequest;
 
     if (!content || content.trim() === '') {
       const error: ApiError = {
@@ -71,10 +71,24 @@ router.post('/messages', async (req: Request, res: Response) => {
         return;
       }
       session = existing;
+
+      // リポジトリが指定されている場合は設定
+      if (repositoryId) {
+        session.setRepository(repositoryId, workingBranch);
+      }
     } else {
       // 新規セッション（user_idとsystemPromptを設定）
       const model = modelName || 'gemma2:9b';
-      session = new ChatSession(model, null, history, undefined, userId, systemPrompt);
+      session = new ChatSession(
+        model,
+        null,
+        history,
+        undefined,
+        userId,
+        systemPrompt,
+        repositoryId,
+        workingBranch
+      );
     }
 
     // SSEヘッダーを設定
