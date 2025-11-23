@@ -1084,3 +1084,196 @@ export function getDefaultDomainPrompt(domainId: number): DomainPrompt | null {
     throw error;
   }
 }
+
+// ========================================
+// リポジトリ管理
+// ========================================
+
+/**
+ * ユーザーリポジトリの型定義
+ */
+export interface UserRepository {
+  id: number;
+  user_id: number;
+  name: string;
+  local_path: string;
+  description: string | null;
+  default_branch: string;
+  primary_language: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * リポジトリを作成
+ */
+export function createRepository(
+  userId: number,
+  name: string,
+  localPath: string,
+  description?: string,
+  defaultBranch: string = 'main',
+  primaryLanguage?: string
+): number {
+  const db = initDatabase();
+  const now = new Date().toISOString();
+
+  try {
+    const result = db
+      .prepare(`
+        INSERT INTO user_repositories (
+          user_id, name, local_path, description, default_branch, primary_language, created_at, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `)
+      .run(userId, name, localPath, description || null, defaultBranch, primaryLanguage || null, now, now);
+
+    db.close();
+    return result.lastInsertRowid as number;
+  } catch (error) {
+    db.close();
+    throw error;
+  }
+}
+
+/**
+ * ユーザーのリポジトリ一覧を取得
+ */
+export function getUserRepositories(userId: number): UserRepository[] {
+  const db = initDatabase();
+
+  try {
+    const repos = db
+      .prepare('SELECT * FROM user_repositories WHERE user_id = ? ORDER BY created_at DESC')
+      .all(userId) as UserRepository[];
+
+    db.close();
+    return repos;
+  } catch (error) {
+    db.close();
+    throw error;
+  }
+}
+
+/**
+ * リポジトリをIDで取得
+ */
+export function getRepositoryById(id: number): UserRepository | null {
+  const db = initDatabase();
+
+  try {
+    const repo = db
+      .prepare('SELECT * FROM user_repositories WHERE id = ?')
+      .get(id) as UserRepository | undefined;
+
+    db.close();
+    return repo || null;
+  } catch (error) {
+    db.close();
+    throw error;
+  }
+}
+
+/**
+ * リポジトリを更新
+ */
+export function updateRepository(
+  id: number,
+  updates: {
+    name?: string;
+    description?: string;
+    default_branch?: string;
+    primary_language?: string;
+  }
+): boolean {
+  const db = initDatabase();
+  const now = new Date().toISOString();
+
+  try {
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (updates.name !== undefined) {
+      fields.push('name = ?');
+      values.push(updates.name);
+    }
+    if (updates.description !== undefined) {
+      fields.push('description = ?');
+      values.push(updates.description);
+    }
+    if (updates.default_branch !== undefined) {
+      fields.push('default_branch = ?');
+      values.push(updates.default_branch);
+    }
+    if (updates.primary_language !== undefined) {
+      fields.push('primary_language = ?');
+      values.push(updates.primary_language);
+    }
+
+    if (fields.length === 0) {
+      db.close();
+      return false;
+    }
+
+    fields.push('updated_at = ?');
+    values.push(now);
+    values.push(id);
+
+    const result = db
+      .prepare(`UPDATE user_repositories SET ${fields.join(', ')} WHERE id = ?`)
+      .run(...values);
+
+    db.close();
+    return result.changes > 0;
+  } catch (error) {
+    db.close();
+    throw error;
+  }
+}
+
+/**
+ * リポジトリを削除
+ */
+export function deleteRepository(id: number): boolean {
+  const db = initDatabase();
+
+  try {
+    const result = db
+      .prepare('DELETE FROM user_repositories WHERE id = ?')
+      .run(id);
+
+    db.close();
+    return result.changes > 0;
+  } catch (error) {
+    db.close();
+    throw error;
+  }
+}
+
+/**
+ * セッションのリポジトリを設定
+ */
+export function setSessionRepository(
+  sessionId: number,
+  repositoryId: number | null,
+  workingBranch?: string
+): boolean {
+  const db = initDatabase();
+  const now = new Date().toISOString();
+
+  try {
+    const result = db
+      .prepare(`
+        UPDATE sessions
+        SET repository_id = ?, working_branch = ?, updated_at = ?
+        WHERE id = ?
+      `)
+      .run(repositoryId, workingBranch || null, now, sessionId);
+
+    db.close();
+    return result.changes > 0;
+  } catch (error) {
+    db.close();
+    throw error;
+  }
+}
