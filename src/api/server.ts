@@ -13,6 +13,7 @@ import systemRouter from './routes/system.js';
 import chatRouter from './routes/chat.js';
 import authRouter from './routes/auth.js';
 import domainsRouter from './routes/domains.js';
+import repositoriesRouter from './routes/repositories.js';
 
 // package.json を読み込む
 const __filename = fileURLToPath(import.meta.url);
@@ -84,6 +85,23 @@ app.get('/api', (req, res) => {
         prompts: 'GET /api/domains/:id/prompts',
         getPrompt: 'GET /api/domains/prompts/:id',
       },
+      repositories: {
+        create: 'POST /api/repositories',
+        list: 'GET /api/repositories',
+        get: 'GET /api/repositories/:id',
+        update: 'PUT /api/repositories/:id',
+        delete: 'DELETE /api/repositories/:id',
+        branches: 'GET /api/repositories/:id/branches',
+        currentBranch: 'GET /api/repositories/:id/branches/current',
+        createBranch: 'POST /api/repositories/:id/branches',
+        checkoutBranch: 'PUT /api/repositories/:id/branches/checkout',
+        fileTree: 'GET /api/repositories/:id/tree',
+        fileContent: 'GET /api/repositories/:id/files',
+        commits: 'GET /api/repositories/:id/commits',
+        status: 'GET /api/repositories/:id/status',
+        diff: 'GET /api/repositories/:id/diff',
+        commit: 'POST /api/repositories/:id/commit',
+      },
     },
     documentation: {
       main: 'https://github.com/unrcom/llamune/blob/main/docs/API_SPECIFICATION.md',
@@ -115,6 +133,7 @@ app.use('/api/presets', presetsRouter);
 app.use('/api/system', systemRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/domains', domainsRouter);
+app.use('/api/repositories', repositoriesRouter);
 
 // ヘルスチェック（認証不要）
 app.get('/health', (req, res) => {
