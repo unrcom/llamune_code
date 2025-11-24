@@ -1072,7 +1072,6 @@ program
         console.log('');
         console.log(`  ollama pull ${recommendedData.recommended[0].name}`);
         console.log('');
-        console.log('理由: モデルダウンロードは30分以上かかる場合があり、API経由ではタイムアウトします。');
         return;
       }
 
@@ -1080,8 +1079,6 @@ program
       console.log('⚠️  モデルのダウンロードは ollama コマンドを直接使用してください:');
       console.log('');
       console.log(`  ollama pull ${modelName}`);
-      console.log('');
-      console.log('理由: モデルダウンロードは30分以上かかる場合があり、API経由ではタイムアウトします。');
       console.log('');
       console.log('ダウンロード後、以下のコマンドで確認できます:');
       console.log('  llamune ls');
