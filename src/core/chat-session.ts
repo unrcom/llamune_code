@@ -83,6 +83,12 @@ export class ChatSession {
 
     while (continueLoop && loopCount < MAX_TOOL_LOOPS) {
       loopCount++;
+
+      if (process.env.DEBUG_TOOL_CALLING === 'true') {
+        console.log(`[DEBUG] === Tool calling loop iteration ${loopCount}/${MAX_TOOL_LOOPS} ===`);
+        console.log('[DEBUG] Messages count:', this.messages.length);
+      }
+
       const request: any = {
         model: this.model,
         messages: this.messages,
@@ -93,6 +99,9 @@ export class ChatSession {
       // リポジトリが紐付いている場合はツールを含める
       if (this.repositoryId) {
         request.tools = repositoryTools;
+        if (process.env.DEBUG_TOOL_CALLING === 'true') {
+          console.log('[DEBUG] Tools enabled, repository ID:', this.repositoryId);
+        }
       }
 
       try {
@@ -129,16 +138,32 @@ export class ChatSession {
             try {
               const data = JSON.parse(line);
 
+              // デバッグログ：Ollamaからの生データを出力
+              if (process.env.DEBUG_TOOL_CALLING === 'true') {
+                console.log('[DEBUG] Ollama chunk:', JSON.stringify(data, null, 2));
+              }
+
               // ツール呼び出し
               if (data.message?.tool_calls && data.message.tool_calls.length > 0) {
                 toolCalls = data.message.tool_calls;
+                if (process.env.DEBUG_TOOL_CALLING === 'true') {
+                  console.log('[DEBUG] Tool calls detected:', JSON.stringify(toolCalls, null, 2));
+                }
               }
 
               // 通常のコンテンツ（ツール呼び出しがない場合のみ表示）
               if (data.message?.content && toolCalls.length === 0) {
                 assistantMessage += data.message.content;
                 fullResponse = assistantMessage;
+                if (process.env.DEBUG_TOOL_CALLING === 'true') {
+                  console.log('[DEBUG] Yielding content:', data.message.content);
+                }
                 yield fullResponse;
+              } else if (data.message?.content && toolCalls.length > 0) {
+                // ツール呼び出しがある場合のcontentは表示しない
+                if (process.env.DEBUG_TOOL_CALLING === 'true') {
+                  console.log('[DEBUG] Skipping content (tool call present):', data.message.content);
+                }
               }
 
               // ストリーム完了チェック
@@ -157,12 +182,20 @@ export class ChatSession {
                     const functionName = toolCall.function.name;
                     const args = toolCall.function.arguments;
 
+                    if (process.env.DEBUG_TOOL_CALLING === 'true') {
+                      console.log('[DEBUG] Executing tool:', functionName, 'with args:', args);
+                    }
+
                     // ツールを実行（通知は内部処理のため非表示）
                     const result = await executeRepositoryTool(
                       this.repositoryId!,
                       functionName,
                       args
                     );
+
+                    if (process.env.DEBUG_TOOL_CALLING === 'true') {
+                      console.log('[DEBUG] Tool result:', JSON.stringify(result, null, 2));
+                    }
 
                     // toolメッセージとして結果を追加
                     this.messages.push({
