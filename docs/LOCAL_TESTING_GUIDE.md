@@ -85,8 +85,8 @@ npm run api > api.log 2>&1 &
 ### 自動テストスクリプトを実行
 
 ```bash
-chmod +x ./test-local.sh
-./test-local.sh
+chmod +x ./scripts/test-tool-calling.sh
+./scripts/test-tool-calling.sh
 ```
 
 このスクリプトは以下を自動実行します：

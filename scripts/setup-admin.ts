@@ -43,4 +43,4 @@ console.log('🎉 セットアップ完了！');
 console.log('');
 console.log('次のステップ:');
 console.log('  1. APIサーバーを起動: npm run api');
-console.log('  2. テストを実行: ./test-local.sh');
+console.log('  2. テストを実行: ./scripts/test-tool-calling.sh');
