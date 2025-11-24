@@ -70,9 +70,10 @@ echo "========================================="
 echo ""
 echo "質問: 'package.jsonを読んで、プロジェクト名とバージョン、説明を教えてください'"
 echo ""
-echo "LLMの応答:"
-echo "---"
+echo "⏳ LLMが応答を生成中..."
 
+# 一時ファイルに最終結果を保存
+TEMP_FILE=$(mktemp)
 curl -X POST http://localhost:3000/api/chat/messages \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -86,16 +87,22 @@ curl -X POST http://localhost:3000/api/chat/messages \
       data="${line#data: }"
       content=$(echo "$data" | jq -r '.content // empty' 2>/dev/null)
       if [ -n "$content" ]; then
-        echo -ne "\r\033[K$content"
+        echo "$content" > "$TEMP_FILE"
       fi
     elif [[ $line == event:\ done ]]; then
-      echo ""
       break
     fi
   done
 
+# 最終結果を表示
+echo ""
+echo "LLMの応答:"
+echo "---"
+cat "$TEMP_FILE"
 echo ""
 echo "---"
+rm -f "$TEMP_FILE"
+
 echo ""
 
 # 5. 第2テスト：コード検索
@@ -105,9 +112,9 @@ echo "========================================="
 echo ""
 echo "質問: 'src/utils/repository-tools.ts ファイルを読んで、定義されているツールの数を教えてください'"
 echo ""
-echo "LLMの応答:"
-echo "---"
+echo "⏳ LLMが応答を生成中..."
 
+TEMP_FILE=$(mktemp)
 curl -X POST http://localhost:3000/api/chat/messages \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -121,18 +128,22 @@ curl -X POST http://localhost:3000/api/chat/messages \
       data="${line#data: }"
       content=$(echo "$data" | jq -r '.content // empty' 2>/dev/null)
       if [ -n "$content" ]; then
-        echo -ne "\r\033[K$content"
+        echo "$content" > "$TEMP_FILE"
       fi
     elif [[ $line == event:\ done ]]; then
-      echo ""
       break
     fi
   done
 
 echo ""
+echo "LLMの応答:"
 echo "---"
+cat "$TEMP_FILE"
 echo ""
+echo "---"
+rm -f "$TEMP_FILE"
 
+echo ""
 echo "========================================="
 echo "✅ テスト完了！"
 echo "========================================="
