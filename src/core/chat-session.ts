@@ -76,7 +76,11 @@ export class ChatSession {
 
     // ツール呼び出しループ（LLMがツールを使わなくなるまで繰り返す）
     let continueLoop = true;
-    while (continueLoop) {
+    let loopCount = 0;
+    const MAX_TOOL_LOOPS = 5; // 最大5回のツール呼び出しループ
+
+    while (continueLoop && loopCount < MAX_TOOL_LOOPS) {
+      loopCount++;
       const request: any = {
         model: this.model,
         messages: this.messages,
@@ -210,6 +214,13 @@ export class ChatSession {
       if (!continueLoop) {
         break;
       }
+    }
+
+    // 最大ループ回数に達した場合の警告
+    if (loopCount >= MAX_TOOL_LOOPS) {
+      const warning = `\n\n⚠️ 最大ツール呼び出し回数(${MAX_TOOL_LOOPS})に達しました。処理を終了します。`;
+      fullResponse += warning;
+      yield fullResponse;
     }
 
     return fullResponse;
