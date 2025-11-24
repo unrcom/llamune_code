@@ -48,15 +48,17 @@ export class ChatSession {
     this.messages = messages || [];
     this.parameters = parameters;
     this.userId = userId;
-    this.systemPrompt = systemPrompt;
+
+    // systemPromptが未指定の場合、デフォルトで日本語指示を含むプロンプトを設定
+    this.systemPrompt = systemPrompt || '**必ず日本語で応答してください。**\n\nあなたは親切なAIアシスタントです。ユーザーの質問に丁寧に答えてください。';
     this.repositoryId = repositoryId;
     this.workingBranch = workingBranch;
 
     // system promptが指定されていて、messagesが空またはsystem roleがない場合、先頭に追加
-    if (systemPrompt && (this.messages.length === 0 || this.messages[0].role !== 'system')) {
+    if (this.systemPrompt && (this.messages.length === 0 || this.messages[0].role !== 'system')) {
       this.messages.unshift({
         role: 'system',
-        content: systemPrompt,
+        content: this.systemPrompt,
       });
     }
   }
@@ -127,16 +129,16 @@ export class ChatSession {
             try {
               const data = JSON.parse(line);
 
-              // 通常のコンテンツ
-              if (data.message?.content) {
-                assistantMessage += data.message.content;
-                fullResponse = assistantMessage;
-                yield fullResponse;
-              }
-
               // ツール呼び出し
               if (data.message?.tool_calls && data.message.tool_calls.length > 0) {
                 toolCalls = data.message.tool_calls;
+              }
+
+              // 通常のコンテンツ（ツール呼び出しがない場合のみ表示）
+              if (data.message?.content && toolCalls.length === 0) {
+                assistantMessage += data.message.content;
+                fullResponse = assistantMessage;
+                yield fullResponse;
               }
 
               // ストリーム完了チェック
