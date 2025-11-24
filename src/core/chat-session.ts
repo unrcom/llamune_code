@@ -155,12 +155,7 @@ export class ChatSession {
                     const functionName = toolCall.function.name;
                     const args = toolCall.function.arguments;
 
-                    // ユーザーにツール実行を通知
-                    const toolNotification = `\n[🔧 Executing: ${functionName}(${JSON.stringify(args).substring(0, 50)}...)]\n`;
-                    fullResponse += toolNotification;
-                    yield fullResponse;
-
-                    // ツールを実行
+                    // ツールを実行（通知は内部処理のため非表示）
                     const result = await executeRepositoryTool(
                       this.repositoryId!,
                       functionName,
@@ -172,11 +167,6 @@ export class ChatSession {
                       role: 'tool',
                       content: JSON.stringify(result),
                     });
-
-                    // 実行結果を通知
-                    const resultNotification = `[✓ ${functionName}: ${result.success ? 'Success' : 'Failed'}]\n`;
-                    fullResponse += resultNotification;
-                    yield fullResponse;
                   }
 
                   // ツール実行後、再度LLMに問い合わせ（ループ継続）
