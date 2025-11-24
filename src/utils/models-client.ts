@@ -50,7 +50,7 @@ export async function pullModelApi(
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ modelName: name }),
   });
 
   if (!response.ok) {
@@ -94,7 +94,7 @@ export async function deleteModelApi(name: string): Promise<void> {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ modelName: name }),
   });
 
   if (!response.ok) {
