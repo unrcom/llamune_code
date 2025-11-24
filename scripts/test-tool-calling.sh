@@ -59,17 +59,28 @@ echo ""
 # 3. 利用可能なモデル確認
 echo "3️⃣  Ollamaモデル確認..."
 MODELS=$(curl -s http://localhost:11434/api/tags)
-MODEL_NAME=$(echo "$MODELS" | jq -r '.models[] | select(.name | contains("qwen2.5:14b")) | .name' | head -1)
 
-if [ -z "$MODEL_NAME" ]; then
-  MODEL_NAME=$(echo "$MODELS" | jq -r '.models[] | select(.name | contains("gemma2")) | .name' | head -1)
+# 環境変数で指定されていればそれを使用
+if [ -n "$MODEL_NAME" ]; then
+  echo "✅ 使用モデル（環境変数指定）: $MODEL_NAME"
+else
+  # 自動選択: qwen2.5:14b → gemma2 → llama3.1 → 最初のモデル
+  MODEL_NAME=$(echo "$MODELS" | jq -r '.models[] | select(.name | contains("qwen2.5:14b")) | .name' | head -1)
+
+  if [ -z "$MODEL_NAME" ]; then
+    MODEL_NAME=$(echo "$MODELS" | jq -r '.models[] | select(.name | contains("gemma2")) | .name' | head -1)
+  fi
+
+  if [ -z "$MODEL_NAME" ]; then
+    MODEL_NAME=$(echo "$MODELS" | jq -r '.models[] | select(.name | contains("llama3.1")) | .name' | head -1)
+  fi
+
+  if [ -z "$MODEL_NAME" ]; then
+    MODEL_NAME=$(echo "$MODELS" | jq -r '.models[0].name')
+  fi
+
+  echo "✅ 使用モデル（自動選択）: $MODEL_NAME"
 fi
-
-if [ -z "$MODEL_NAME" ]; then
-  MODEL_NAME=$(echo "$MODELS" | jq -r '.models[0].name')
-fi
-
-echo "✅ 使用モデル: $MODEL_NAME"
 echo ""
 
 # 4. ツール呼び出しテスト
