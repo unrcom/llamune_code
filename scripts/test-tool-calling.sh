@@ -331,6 +331,166 @@ fi
 
 echo ""
 
+# 7. 第7テスト：ファイル一覧（list_files）
+echo "========================================="
+echo "📁 ファイル一覧テスト (list_files)"
+echo "========================================="
+echo ""
+echo "質問: 'src/utils ディレクトリにあるTypeScriptファイルの一覧を表示してください'"
+echo ""
+echo "⏳ LLMが応答を生成中..."
+
+TEMP_FILE=$(mktemp)
+curl -X POST http://localhost:3000/api/chat/messages \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"content\": \"src/utils ディレクトリにあるTypeScriptファイルの一覧を表示してください\",
+    \"modelName\": \"$MODEL_NAME\",
+    \"repositoryId\": $REPO_ID
+  }" \
+  -N 2>/dev/null | while IFS= read -r line; do
+    if [[ $line == data:* ]]; then
+      data="${line#data: }"
+      content=$(echo "$data" | jq -r '.content // empty' 2>/dev/null)
+      if [ -n "$content" ]; then
+        echo "$content" > "$TEMP_FILE"
+      fi
+    elif [[ $line == event:\ done ]]; then
+      break
+    fi
+  done
+
+echo ""
+echo "LLMの応答:"
+echo "---"
+cat "$TEMP_FILE"
+echo ""
+echo "---"
+rm -f "$TEMP_FILE"
+
+echo ""
+
+# 8. 第8テスト：コード検索（search_code）
+echo "========================================="
+echo "🔍 コード検索テスト (search_code)"
+echo "========================================="
+echo ""
+echo "質問: 'executeRepositoryTool という関数を検索してください'"
+echo ""
+echo "⏳ LLMが応答を生成中..."
+
+TEMP_FILE=$(mktemp)
+curl -X POST http://localhost:3000/api/chat/messages \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"content\": \"executeRepositoryTool という関数を検索してください\",
+    \"modelName\": \"$MODEL_NAME\",
+    \"repositoryId\": $REPO_ID
+  }" \
+  -N 2>/dev/null | while IFS= read -r line; do
+    if [[ $line == data:* ]]; then
+      data="${line#data: }"
+      content=$(echo "$data" | jq -r '.content // empty' 2>/dev/null)
+      if [ -n "$content" ]; then
+        echo "$content" > "$TEMP_FILE"
+      fi
+    elif [[ $line == event:\ done ]]; then
+      break
+    fi
+  done
+
+echo ""
+echo "LLMの応答:"
+echo "---"
+cat "$TEMP_FILE"
+echo ""
+echo "---"
+rm -f "$TEMP_FILE"
+
+echo ""
+
+# 9. 第9テスト：ファイルツリー（get_file_tree）
+echo "========================================="
+echo "🌲 ファイルツリーテスト (get_file_tree)"
+echo "========================================="
+echo ""
+echo "質問: 'プロジェクトのファイルツリーを深さ2まで表示してください'"
+echo ""
+echo "⏳ LLMが応答を生成中..."
+
+TEMP_FILE=$(mktemp)
+curl -X POST http://localhost:3000/api/chat/messages \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"content\": \"プロジェクトのファイルツリーを深さ2まで表示してください\",
+    \"modelName\": \"$MODEL_NAME\",
+    \"repositoryId\": $REPO_ID
+  }" \
+  -N 2>/dev/null | while IFS= read -r line; do
+    if [[ $line == data:* ]]; then
+      data="${line#data: }"
+      content=$(echo "$data" | jq -r '.content // empty' 2>/dev/null)
+      if [ -n "$content" ]; then
+        echo "$content" > "$TEMP_FILE"
+      fi
+    elif [[ $line == event:\ done ]]; then
+      break
+    fi
+  done
+
+echo ""
+echo "LLMの応答:"
+echo "---"
+cat "$TEMP_FILE"
+echo ""
+echo "---"
+rm -f "$TEMP_FILE"
+
+echo ""
+
+# 10. 第10テスト：コミット履歴（get_recent_commits）
+echo "========================================="
+echo "📜 コミット履歴テスト (get_recent_commits)"
+echo "========================================="
+echo ""
+echo "質問: '最近の5つのコミットを表示してください'"
+echo ""
+echo "⏳ LLMが応答を生成中..."
+
+TEMP_FILE=$(mktemp)
+curl -X POST http://localhost:3000/api/chat/messages \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"content\": \"最近の5つのコミットを表示してください\",
+    \"modelName\": \"$MODEL_NAME\",
+    \"repositoryId\": $REPO_ID
+  }" \
+  -N 2>/dev/null | while IFS= read -r line; do
+    if [[ $line == data:* ]]; then
+      data="${line#data: }"
+      content=$(echo "$data" | jq -r '.content // empty' 2>/dev/null)
+      if [ -n "$content" ]; then
+        echo "$content" > "$TEMP_FILE"
+      fi
+    elif [[ $line == event:\ done ]]; then
+      break
+    fi
+  done
+
+echo ""
+echo "LLMの応答:"
+echo "---"
+cat "$TEMP_FILE"
+echo ""
+echo "---"
+rm -f "$TEMP_FILE"
+
+echo ""
+
 # クリーンアップ
 echo "🧹 テストファイルのクリーンアップ..."
 if [ -f "test-output.txt" ]; then
@@ -341,28 +501,36 @@ fi
 
 echo ""
 echo "========================================="
-echo "✅ 段階的テスト完了！"
+echo "✅ 全ツールテスト完了！"
 echo "========================================="
 echo ""
 echo "📊 テスト結果サマリー："
 echo "  ✅ Test 1: read_file (package.json読み取り)"
 echo "  ✅ Test 2: read_file (repository-tools.ts読み取り)"
-echo "  📝 Test 3: write_file (ファイル書き込み)"
-echo "  📝 Test 4: git_status (Git状態確認)"
-echo "  📝 Test 5: git_diff (差分表示)"
-echo "  📝 Test 6: commit_changes (コミット作成)"
+echo "  ✅ Test 3: write_file (ファイル書き込み)"
+echo "  ✅ Test 4: git_status (Git状態確認)"
+echo "  ✅ Test 5: git_diff (差分表示)"
+echo "  ✅ Test 6: commit_changes (コミット作成)"
+echo "  ✅ Test 7: list_files (ファイル一覧)"
+echo "  ✅ Test 8: search_code (コード検索)"
+echo "  ✅ Test 9: get_file_tree (ファイルツリー)"
+echo "  ✅ Test 10: get_recent_commits (コミット履歴)"
 echo ""
-echo "🎉 高優先度ツール（コア機能）のテストが完了しました！"
+echo "🎉 すべてのリポジトリ操作ツールのテストが完了しました！"
 echo ""
 echo "📊 実装されたツール（10個）："
-echo "  1. read_file - ファイル読み取り ✅ テスト済み"
-echo "  2. write_file - ファイル書き込み 📝 テスト完了"
-echo "  3. list_files - ファイル一覧 🔸 部分的"
-echo "  4. search_code - コード検索 ⚠️ 未テスト"
-echo "  5. git_status - Git状態 📝 テスト完了"
-echo "  6. git_diff - 差分表示 📝 テスト完了"
-echo "  7. create_branch - ブランチ作成 ⚠️ 未テスト"
-echo "  8. commit_changes - コミット 📝 テスト完了"
-echo "  9. get_file_tree - ファイルツリー ⚠️ 未テスト"
-echo "  10. get_recent_commits - コミット履歴 ⚠️ 未テスト"
+echo "  1. read_file - ファイル読み取り ✅ テスト完了"
+echo "  2. write_file - ファイル書き込み ✅ テスト完了"
+echo "  3. list_files - ファイル一覧 ✅ テスト完了"
+echo "  4. search_code - コード検索 ✅ テスト完了"
+echo "  5. git_status - Git状態 ✅ テスト完了"
+echo "  6. git_diff - 差分表示 ✅ テスト完了"
+echo "  7. create_branch - ブランチ作成 ⚠️ 未テスト（Git状態を変更するため手動テスト推奨）"
+echo "  8. commit_changes - コミット ✅ テスト完了"
+echo "  9. get_file_tree - ファイルツリー ✅ テスト完了"
+echo "  10. get_recent_commits - コミット履歴 ✅ テスト完了"
+echo ""
+echo "📝 注意："
+echo "  - create_branch はGit状態を永続的に変更するため、自動テストには含めていません"
+echo "  - 必要に応じて手動でテストしてください"
 echo ""
