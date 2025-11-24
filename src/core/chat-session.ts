@@ -148,7 +148,11 @@ export class ChatSession {
                 toolCalls = data.message.tool_calls;
                 if (process.env.DEBUG_TOOL_CALLING === 'true') {
                   console.log('[DEBUG] Tool calls detected:', JSON.stringify(toolCalls, null, 2));
+                  console.log('[DEBUG] Discarding accumulated content:', assistantMessage);
                 }
+                // ツール呼び出しが検出されたら、それまでのcontentを破棄
+                assistantMessage = '';
+                fullResponse = '';
               }
 
               // 通常のコンテンツ（ツール呼び出しがない場合のみ表示）
