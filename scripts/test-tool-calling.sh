@@ -6,6 +6,15 @@ echo "🧪 Llamune ツール呼び出しテスト（ローカル実行用）"
 echo "========================================="
 echo ""
 
+# 0. 前回のテスト実行の残骸をクリーンアップ
+echo "0️⃣  前回実行の残骸をクリーンアップ中..."
+if [ -f "test-output.txt" ]; then
+  git reset HEAD test-output.txt 2>/dev/null || true
+  rm -f test-output.txt
+  echo "   ✅ test-output.txt をクリーンアップしました"
+fi
+echo ""
+
 # 1. ログイン
 echo "1️⃣  ログイン..."
 TOKEN=$(curl -X POST http://localhost:3000/api/auth/login \
