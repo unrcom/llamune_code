@@ -126,6 +126,7 @@ export class ChatSession {
         const decoder = new TextDecoder();
         let assistantMessage = '';
         let toolCalls: any[] = [];
+        let contentBuffer = ''; // 1チャンク分のバッファ
 
         while (true) {
           const { done, value } = await reader.read();
@@ -143,26 +144,37 @@ export class ChatSession {
                 console.log('[DEBUG] Ollama chunk:', JSON.stringify(data, null, 2));
               }
 
-              // ツール呼び出し
+              // ツール呼び出し検出
               if (data.message?.tool_calls && data.message.tool_calls.length > 0) {
                 toolCalls = data.message.tool_calls;
                 if (process.env.DEBUG_TOOL_CALLING === 'true') {
                   console.log('[DEBUG] Tool calls detected:', JSON.stringify(toolCalls, null, 2));
-                  console.log('[DEBUG] Discarding accumulated content:', assistantMessage);
+                  console.log('[DEBUG] Discarding buffer and accumulated content');
+                  console.log('[DEBUG] - contentBuffer:', contentBuffer);
+                  console.log('[DEBUG] - assistantMessage:', assistantMessage);
                 }
-                // ツール呼び出しが検出されたら、それまでのcontentを破棄
+                // ツール呼び出しが検出されたら、バッファと蓄積されたcontentを破棄
+                contentBuffer = '';
                 assistantMessage = '';
                 fullResponse = '';
               }
 
-              // 通常のコンテンツ（ツール呼び出しがない場合のみ表示）
+              // 通常のコンテンツ処理（バッファリング方式）
               if (data.message?.content && toolCalls.length === 0) {
-                assistantMessage += data.message.content;
-                fullResponse = assistantMessage;
-                if (process.env.DEBUG_TOOL_CALLING === 'true') {
-                  console.log('[DEBUG] Yielding content:', data.message.content);
+                // 前回のバッファがあれば、それを今yieldする
+                if (contentBuffer) {
+                  assistantMessage += contentBuffer;
+                  fullResponse = assistantMessage;
+                  if (process.env.DEBUG_TOOL_CALLING === 'true') {
+                    console.log('[DEBUG] Yielding buffered content:', contentBuffer);
+                  }
+                  yield fullResponse;
                 }
-                yield fullResponse;
+                // 現在のcontentを次回用のバッファに保存（まだyieldしない）
+                contentBuffer = data.message.content;
+                if (process.env.DEBUG_TOOL_CALLING === 'true') {
+                  console.log('[DEBUG] Buffering content for next iteration:', contentBuffer);
+                }
               } else if (data.message?.content && toolCalls.length > 0) {
                 // ツール呼び出しがある場合のcontentは表示しない
                 if (process.env.DEBUG_TOOL_CALLING === 'true') {
@@ -212,9 +224,21 @@ export class ChatSession {
                   continueLoop = true;
                   assistantMessage = '';
                   toolCalls = [];
+                  contentBuffer = ''; // バッファもクリア
                 } else {
                   // ツール呼び出しがない場合は終了
                   continueLoop = false;
+
+                  // 残っているバッファがあればyield
+                  if (contentBuffer) {
+                    assistantMessage += contentBuffer;
+                    fullResponse = assistantMessage;
+                    if (process.env.DEBUG_TOOL_CALLING === 'true') {
+                      console.log('[DEBUG] Yielding final buffered content:', contentBuffer);
+                    }
+                    yield fullResponse;
+                    contentBuffer = ''; // バッファをクリア
+                  }
 
                   // アシスタントの応答を追加
                   if (assistantMessage) {
