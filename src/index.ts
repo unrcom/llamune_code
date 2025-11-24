@@ -1043,14 +1043,14 @@ program.command('ls').description('利用可能なモデル一覧を表示').act
 // models コマンド（後方互換性のためのエイリアス）
 program.command('models', { hidden: true }).action(showModelList);
 
-// pull コマンド（API クライアント版）
+// pull コマンド（ollama CLI へのリダイレクト）
 program
   .command('pull')
   .description('モデルをダウンロード')
   .argument('[model]', 'モデル名（例: gemma2:9b）')
   .action(async (modelName?: string) => {
     try {
-      const { pullModelApi, getSystemSpecApi, getRecommendedModelsApi } = await import('./utils/models-client.js');
+      const { getSystemSpecApi, getRecommendedModelsApi } = await import('./utils/models-client.js');
 
       // モデル名が指定されていない場合は推奨モデルを表示
       if (!modelName) {
@@ -1068,27 +1068,22 @@ program
           console.log(`${badge} ${model.name} - ${model.description}`);
         });
         console.log('');
-        console.log('使い方:');
-        console.log(`  llamune pull ${recommendedData.recommended[0].name}`);
-        console.log(`  llmn pull ${recommendedData.recommended[0].name}`);
+        console.log('⚠️  モデルのダウンロードは ollama コマンドを直接使用してください:');
+        console.log('');
+        console.log(`  ollama pull ${recommendedData.recommended[0].name}`);
+        console.log('');
+        console.log('理由: モデルダウンロードは30分以上かかる場合があり、API経由ではタイムアウトします。');
         return;
       }
 
-      // モデルをプル（API経由）
-      await pullModelApi(modelName, (progress) => {
-        if (progress.status) {
-          process.stdout.write(`\r${progress.status}`);
-          if (progress.completed && progress.total) {
-            const percent = Math.round((progress.completed / progress.total) * 100);
-            process.stdout.write(` ${percent}%`);
-          }
-        }
-      });
-
+      // モデル名が指定されている場合は ollama pull を案内
+      console.log('⚠️  モデルのダウンロードは ollama コマンドを直接使用してください:');
       console.log('');
-      console.log('✅ インストール完了！');
+      console.log(`  ollama pull ${modelName}`);
       console.log('');
-      console.log('次のコマンドで確認できます:');
+      console.log('理由: モデルダウンロードは30分以上かかる場合があり、API経由ではタイムアウトします。');
+      console.log('');
+      console.log('ダウンロード後、以下のコマンドで確認できます:');
       console.log('  llamune ls');
       console.log('  llmn ls');
     } catch (error) {
