@@ -202,7 +202,10 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
                     <>
                       {/* あなたの本職を支援するモード（クリック可能） */}
                       <button
-                        onClick={handleProfessionalMode}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleProfessionalMode();
+                        }}
                         className="w-full text-left p-4 bg-gradient-to-r from-blue-900/40 to-purple-900/40 hover:from-blue-900/60 hover:to-purple-900/60 rounded-lg border border-blue-700/50 hover:border-blue-600 transition-all"
                       >
                         <div className="flex items-center gap-3">
