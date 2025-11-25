@@ -28,7 +28,9 @@
     "migrate:session-title": "tsx scripts/migrate-add-session-title.ts",
     "migrate:auth": "tsx scripts/migrate-add-auth.ts",
     "migrate:domain-modes": "tsx scripts/migrate-add-domain-modes.ts",
-    "migrate:replace-domains": "tsx scripts/migrate-replace-domains.ts"
+    "migrate:replace-domains": "tsx scripts/migrate-replace-domains.ts",
+    "cleanup-admin-chats": "tsx scripts/cleanup-admin-chats.ts",
+    "check-sessions": "tsx scripts/check-sessions.ts"
   },
   "keywords": [
     "llm",
