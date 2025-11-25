@@ -6,6 +6,7 @@ import { MessageInput } from './MessageInput';
 import { RetryModal } from './RetryModal';
 import { RetryConfirmation } from './RetryConfirmation';
 import { UserMenu } from '../Auth/UserMenu';
+import { RepositorySelector } from '../Repository/RepositorySelector';
 
 export function ChatWindow() {
   const { messages, currentModel, currentPresetId, models, presets, error, isRetryPending, setCurrentModel, acceptRetry, rejectRetry, setMobileView } = useChatStore();
@@ -65,6 +66,7 @@ export function ChatWindow() {
                 ))}
               </select>
             )}
+            <RepositorySelector />
           </div>
           <UserMenu />
         </div>

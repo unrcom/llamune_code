@@ -5,11 +5,12 @@ import { ModelManager } from './components/Models/ModelManager';
 import { Login } from './components/Auth/Login';
 import { useChatStore } from './store/chatStore';
 import { useAuthStore } from './store/authStore';
-import { fetchModels, fetchPresets, getCurrentUser } from './utils/api';
+import { fetchModels, fetchPresets, fetchRepositories, getCurrentUser } from './utils/api';
 
 function App() {
   const setModels = useChatStore((state) => state.setModels);
   const setPresets = useChatStore((state) => state.setPresets);
+  const setRepositories = useChatStore((state) => state.setRepositories);
   const mobileView = useChatStore((state) => state.mobileView);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const clearAuth = useAuthStore((state) => state.clearAuth);
@@ -64,9 +65,20 @@ function App() {
       }
     };
 
+    // リポジトリ一覧を取得
+    const loadRepositories = async () => {
+      try {
+        const { repositories } = await fetchRepositories();
+        setRepositories(repositories);
+      } catch (error) {
+        console.error('Failed to load repositories:', error);
+      }
+    };
+
     loadModels();
     loadPresets();
-  }, [isAuthenticated, isValidating, setModels, setPresets]);
+    loadRepositories();
+  }, [isAuthenticated, isValidating, setModels, setPresets, setRepositories]);
 
   useEffect(() => {
     // モバイル判定
