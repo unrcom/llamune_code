@@ -61,7 +61,7 @@ try {
       console.log('   最近のセッション:');
       recentSessions.forEach((session) => {
         const title = session.title ? ` "${session.title}"` : '';
-        console.log(`   - Session ${session.id}${title}: ${session.message_count} messages (${session.model}, ${session.created_at})`);
+        console.log(`   - ID: ${session.id}${title}: ${session.message_count} messages (${session.model}, ${session.created_at})`);
       });
     }
     console.log('');
