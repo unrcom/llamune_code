@@ -12,6 +12,8 @@ import type {
   User,
   DomainMode,
   DomainPrompt,
+  RepositoriesResponse,
+  Repository,
 } from '../types';
 import { useAuthStore } from '../store/authStore';
 
@@ -332,6 +334,17 @@ export async function fetchDomainPrompts(domainId: number): Promise<{ prompts: D
 
   if (!response.ok) {
     throw new Error('Failed to fetch domain prompts');
+  }
+
+  return response.json();
+}
+
+// リポジトリ一覧を取得
+export async function fetchRepositories(): Promise<RepositoriesResponse> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/repositories`);
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch repositories');
   }
 
   return response.json();

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Message, Session, ChatParameters, Model, ParameterPreset } from '../types';
+import type { Message, Session, ChatParameters, Model, ParameterPreset, Repository } from '../types';
 
 interface ChatState {
   // 現在のセッション
@@ -7,6 +7,7 @@ interface ChatState {
   currentModel: string;
   currentPresetId: number | null;
   currentDomainPromptId: number | null; // ドメイン特化モード用
+  currentRepositoryId: number | null; // リポジトリツール呼び出し用
   messages: Message[];
 
   // セッション一覧
@@ -17,6 +18,9 @@ interface ChatState {
 
   // プリセット一覧
   presets: ParameterPreset[];
+
+  // リポジトリ一覧
+  repositories: Repository[];
 
   // パラメータ
   parameters: ChatParameters;
@@ -33,12 +37,14 @@ interface ChatState {
   setCurrentModel: (model: string) => void;
   setCurrentPresetId: (presetId: number | null) => void;
   setCurrentDomainPromptId: (domainPromptId: number | null) => void;
+  setCurrentRepositoryId: (repositoryId: number | null) => void;
   addMessage: (message: Message) => void;
   setMessages: (messages: Message[]) => void;
   removeLastAssistantMessage: () => Message | null;
   setSessions: (sessions: Session[]) => void;
   setModels: (models: Model[]) => void;
   setPresets: (presets: ParameterPreset[]) => void;
+  setRepositories: (repositories: Repository[]) => void;
   setParameters: (parameters: ChatParameters) => void;
   setIsStreaming: (isStreaming: boolean) => void;
   setError: (error: string | null) => void;
@@ -55,10 +61,12 @@ export const useChatStore = create<ChatState>((set) => ({
   currentModel: '',
   currentPresetId: null,
   currentDomainPromptId: null,
+  currentRepositoryId: null,
   messages: [],
   sessions: [],
   models: [],
   presets: [],
+  repositories: [],
   parameters: {
     temperature: 0.8,
     top_p: 0.9,
@@ -77,6 +85,7 @@ export const useChatStore = create<ChatState>((set) => ({
   setCurrentModel: (model) => set({ currentModel: model }),
   setCurrentPresetId: (presetId) => set({ currentPresetId: presetId }),
   setCurrentDomainPromptId: (domainPromptId) => set({ currentDomainPromptId: domainPromptId }),
+  setCurrentRepositoryId: (repositoryId) => set({ currentRepositoryId: repositoryId }),
   addMessage: (message) => set((state) => ({
     messages: [...state.messages, message]
   })),
@@ -104,6 +113,7 @@ export const useChatStore = create<ChatState>((set) => ({
     currentModel: state.currentModel || (models.length > 0 ? models[0].name : ''),
   })),
   setPresets: (presets) => set({ presets }),
+  setRepositories: (repositories) => set({ repositories }),
   setParameters: (parameters) => set({ parameters }),
   setIsStreaming: (isStreaming) => set({ isStreaming }),
   setError: (error) => set({ error }),
