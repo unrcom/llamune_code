@@ -74,6 +74,32 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
     onClose();
   };
 
+  // 「あなたの本職を支援するモード」を選択（アプリケーション開発のデフォルトプロンプトを自動選択）
+  const handleProfessionalMode = async () => {
+    try {
+      setLoading(true);
+      // アプリケーション開発ドメインを探す
+      const response = await fetchDomainModes();
+      const appDevDomain = response.domains.find(d => d.name === 'app-development');
+
+      if (appDevDomain) {
+        // アプリケーション開発のプロンプトを取得
+        const promptsResponse = await fetchDomainPrompts(appDevDomain.id);
+        // デフォルトプロンプト（コード生成）を探す
+        const defaultPrompt = promptsResponse.prompts.find(p => p.is_default === 1);
+
+        if (defaultPrompt) {
+          onSelect(defaultPrompt.id);
+          onClose();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to select professional mode:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 戻る
   const handleBack = () => {
     if (step === 'prompt') {
@@ -161,8 +187,11 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
                     </div>
                   ) : (
                     <>
-                      {/* 説明パネル */}
-                      <div className="w-full text-left p-4 bg-gradient-to-r from-blue-900/40 to-purple-900/40 rounded-lg border border-blue-700/50">
+                      {/* あなたの本職を支援するモード（クリック可能） */}
+                      <button
+                        onClick={handleProfessionalMode}
+                        className="w-full text-left p-4 bg-gradient-to-r from-blue-900/40 to-purple-900/40 hover:from-blue-900/60 hover:to-purple-900/60 rounded-lg border border-blue-700/50 hover:border-blue-600 transition-all"
+                      >
                         <div className="flex items-center gap-3">
                           <span className="text-2xl">💼</span>
                           <div>
@@ -172,7 +201,7 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </button>
 
                       {/* ドメインリスト */}
                       {domains.map((domain) => (
