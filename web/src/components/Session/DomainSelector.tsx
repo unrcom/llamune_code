@@ -76,27 +76,40 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
 
   // 「あなたの本職を支援するモード」を選択（アプリケーション開発のデフォルトプロンプトを自動選択）
   const handleProfessionalMode = async () => {
+    console.log('[DEBUG] handleProfessionalMode called');
     try {
       setLoading(true);
+      console.log('[DEBUG] Loading set to true');
+
       // アプリケーション開発ドメインを探す
       const response = await fetchDomainModes();
+      console.log('[DEBUG] Domains response:', response);
       const appDevDomain = response.domains.find(d => d.name === 'app-development');
+      console.log('[DEBUG] Found app-development domain:', appDevDomain);
 
       if (appDevDomain) {
         // アプリケーション開発のプロンプトを取得
         const promptsResponse = await fetchDomainPrompts(appDevDomain.id);
+        console.log('[DEBUG] Prompts response:', promptsResponse);
         // デフォルトプロンプト（コード生成）を探す
         const defaultPrompt = promptsResponse.prompts.find(p => p.is_default === 1);
+        console.log('[DEBUG] Default prompt:', defaultPrompt);
 
         if (defaultPrompt) {
+          console.log('[DEBUG] Selecting prompt ID:', defaultPrompt.id);
           onSelect(defaultPrompt.id);
           onClose();
+        } else {
+          console.warn('[DEBUG] No default prompt found');
         }
+      } else {
+        console.warn('[DEBUG] app-development domain not found');
       }
     } catch (error) {
       console.error('Failed to select professional mode:', error);
     } finally {
       setLoading(false);
+      console.log('[DEBUG] Loading set to false');
     }
   };
 
