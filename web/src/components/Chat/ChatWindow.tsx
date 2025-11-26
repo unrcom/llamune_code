@@ -9,7 +9,7 @@ import { UserMenu } from '../Auth/UserMenu';
 import { RepositorySelector } from '../Repository/RepositorySelector';
 
 export function ChatWindow() {
-  const { messages, currentModel, currentPresetId, models, presets, error, isRetryPending, setCurrentModel, acceptRetry, rejectRetry, setMobileView } = useChatStore();
+  const { messages, currentModel, currentPresetId, currentDomainPromptId, models, presets, error, isRetryPending, setCurrentModel, acceptRetry, rejectRetry, setMobileView } = useChatStore();
   const { sendMessage, retryMessage, streamingContent, isStreaming } = useChat();
   const [isRetryModalOpen, setIsRetryModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -49,7 +49,7 @@ export function ChatWindow() {
               </button>
             )}
             <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              Llamune Chat
+              {currentDomainPromptId ? 'コード生成モード' : 'Llamune Chat'}
             </h1>
             {models.length > 0 && (
               <select
