@@ -7,7 +7,7 @@ import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 
-const AUTH_FILE = join(homedir(), '.llamune', 'auth.json');
+const AUTH_FILE = join(homedir(), '.llamune_code', 'auth.json');
 const API_BASE_URL = process.env.LLAMUNE_API_URL || 'http://localhost:3000';
 
 /**

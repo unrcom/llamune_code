@@ -15,7 +15,7 @@ export interface LlamuneConfig {
 }
 
 // 設定ファイルのパス
-const CONFIG_DIR = join(homedir(), '.llamune');
+const CONFIG_DIR = join(homedir(), '.llamune_code');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 
 /**

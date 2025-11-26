@@ -8,7 +8,7 @@ import { homedir } from 'os';
 import { join } from 'path';
 import { existsSync } from 'fs';
 
-const DB_DIR = join(homedir(), '.llamune');
+const DB_DIR = join(homedir(), '.llamune_code');
 const DB_FILE = join(DB_DIR, 'history.db');
 
 console.log('📂 Database:', DB_FILE);
@@ -229,7 +229,7 @@ if (allPassed) {
   console.log('対処方法:');
   console.log('1. マイグレーションを再実行: npm run migrate:auth');
   console.log('2. 問題が解決しない場合は、データベースを削除して再実行:');
-  console.log('   rm ~/.llamune/history.db && npm run migrate:auth');
+  console.log('   rm ~/.llamune_code/history.db && npm run migrate:auth');
 }
 
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

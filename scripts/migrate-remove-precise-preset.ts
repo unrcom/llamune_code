@@ -4,8 +4,8 @@ import Database from 'better-sqlite3';
 import { join } from 'path';
 import { homedir } from 'os';
 
-// データベースのパスを取得（~/.llamune/history.db）
-const dbPath = join(homedir(), '.llamune', 'history.db');
+// データベースのパスを取得（~/.llamune_code/history.db）
+const dbPath = join(homedir(), '.llamune_code', 'history.db');
 const db = new Database(dbPath);
 
 console.log(`📂 Database: ${dbPath}`);

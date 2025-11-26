@@ -11,7 +11,7 @@ import { homedir } from 'os';
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 
-const configDir = join(homedir(), '.llamune');
+const configDir = join(homedir(), '.llamune_code');
 const dbPath = join(configDir, 'history.db');
 
 // ディレクトリが存在しない場合は作成

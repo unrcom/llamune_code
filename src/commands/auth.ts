@@ -297,7 +297,7 @@ export async function whoamiCommand(): Promise<void> {
       console.log(`  User ID: ${userInfo.id}`);
       console.log(`  Created: ${new Date(userInfo.created_at).toLocaleString()}`);
       console.log('');
-      console.log(`  Token stored at: ~/.llamune/auth.json`);
+      console.log(`  Token stored at: ~/.llamune_code/auth.json`);
     } catch (error) {
       // トークンが期限切れまたは無効
       console.error('❌ Failed to fetch user info (token is invalid or expired)');

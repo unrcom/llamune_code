@@ -7,7 +7,7 @@ import Database from 'better-sqlite3';
 import { homedir } from 'os';
 import { join } from 'path';
 
-const DB_FILE = join(homedir(), '.llamune', 'history.db');
+const DB_FILE = join(homedir(), '.llamune_code', 'history.db');
 
 console.log('📂 Database:', DB_FILE);
 console.log('');

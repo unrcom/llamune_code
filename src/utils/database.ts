@@ -10,7 +10,7 @@ import { existsSync, mkdirSync } from 'fs';
 import type { ChatMessage } from './ollama.js';
 
 // データベースファイルのパス
-const DB_DIR = join(homedir(), '.llamune');
+const DB_DIR = join(homedir(), '.llamune_code');
 const DB_FILE = join(DB_DIR, 'history.db');
 
 /**
