@@ -30,6 +30,7 @@
     "migrate:domain-modes": "tsx scripts/migrate-add-domain-modes.ts",
     "migrate:replace-domains": "tsx scripts/migrate-replace-domains.ts",
     "migrate:remove-repos": "tsx scripts/migrate-remove-repositories.ts",
+    "restore-llamune-db": "tsx scripts/restore-llamune-db.ts",
     "cleanup-admin-chats": "tsx scripts/cleanup-admin-chats.ts",
     "check-sessions": "tsx scripts/check-sessions.ts",
     "delete-sessions": "tsx scripts/delete-sessions.ts"
