@@ -5,7 +5,7 @@ import { ModelManager } from './components/Models/ModelManager';
 import { Login } from './components/Auth/Login';
 import { useChatStore } from './store/chatStore';
 import { useAuthStore } from './store/authStore';
-import { fetchModels, fetchPresets, fetchRepositories, getCurrentUser } from './utils/api';
+import { fetchModels, fetchPresets, fetchGitRepositories, getCurrentUser } from './utils/api';
 
 function App() {
   const setModels = useChatStore((state) => state.setModels);
@@ -65,11 +65,37 @@ function App() {
       }
     };
 
-    // リポジトリ一覧を取得
+    // リポジトリ一覧を取得（ローカルgitリポジトリをスキャン）
     const loadRepositories = async () => {
       try {
-        const { repositories } = await fetchRepositories();
-        setRepositories(repositories);
+        // セッションストレージからキャッシュを確認
+        const cached = sessionStorage.getItem('gitRepositories');
+        if (cached) {
+          const repositories = JSON.parse(cached);
+          setRepositories(repositories);
+          return;
+        }
+
+        // キャッシュがない場合はスキャン
+        const { repositories } = await fetchGitRepositories();
+
+        // Repository型に変換（idとuser_idは仮の値）
+        const repoList = repositories.map((repo, index) => ({
+          id: index + 1,
+          user_id: 1,
+          name: repo.name,
+          local_path: repo.path,
+          description: null,
+          default_branch: 'main',
+          primary_language: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }));
+
+        // セッションストレージにキャッシュ
+        sessionStorage.setItem('gitRepositories', JSON.stringify(repoList));
+
+        setRepositories(repoList);
       } catch (error) {
         console.error('Failed to load repositories:', error);
       }
