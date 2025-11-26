@@ -206,6 +206,25 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
                           </div>
                         </div>
                       </button>
+
+                      {/* その他のドメインリスト（アプリケーション開発以外） */}
+                      {domains.filter(d => d.name !== 'app-development').map((domain) => (
+                        <button
+                          key={domain.id}
+                          onClick={() => handleSelectDomain(domain)}
+                          className="w-full text-left p-4 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{domain.icon || '📦'}</span>
+                            <div>
+                              <div className="font-semibold text-white">{domain.display_name}</div>
+                              {domain.description && (
+                                <div className="text-sm text-gray-400">{domain.description}</div>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
                     </>
                   )}
                 </>
