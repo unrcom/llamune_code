@@ -201,7 +201,7 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
                           <div>
                             <div className="font-semibold text-white">あなたの本職を支援するモード</div>
                             <div className="text-sm text-gray-300 mt-1">
-                              あなたのドメインを深く理解し個別に開発致します
+                              コード生成の支援
                             </div>
                           </div>
                         </div>
