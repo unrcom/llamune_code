@@ -13,7 +13,6 @@ import systemRouter from './routes/system.js';
 import chatRouter from './routes/chat.js';
 import authRouter from './routes/auth.js';
 import domainsRouter from './routes/domains.js';
-import repositoriesRouter from './routes/repositories.js';
 import gitReposRouter from './routes/git-repos.js';
 
 // package.json を読み込む
@@ -134,7 +133,6 @@ app.use('/api/presets', presetsRouter);
 app.use('/api/system', systemRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/domains', domainsRouter);
-app.use('/api/repositories', repositoriesRouter);
 app.use('/api/git-repos', gitReposRouter);
 
 // ヘルスチェック（認証不要）

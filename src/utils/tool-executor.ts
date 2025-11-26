@@ -18,7 +18,6 @@ import {
   getDiff,
   GitError,
 } from './git.js';
-import { getRepositoryById } from './database.js';
 import type { ToolCallResult } from './repository-tools.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -29,21 +28,12 @@ const execAsync = promisify(exec);
  * ツールを実行する
  */
 export async function executeRepositoryTool(
-  repositoryId: number,
+  repositoryPath: string,
   toolName: string,
   args: Record<string, any>
 ): Promise<ToolCallResult> {
   try {
-    // リポジトリ情報を取得
-    const repository = getRepositoryById(repositoryId);
-    if (!repository) {
-      return {
-        success: false,
-        error: 'Repository not found',
-      };
-    }
-
-    const repoPath = repository.local_path;
+    const repoPath = repositoryPath;
 
     // ツールごとに処理を分岐
     switch (toolName) {

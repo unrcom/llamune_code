@@ -7,7 +7,7 @@ interface ChatState {
   currentModel: string;
   currentPresetId: number | null;
   currentDomainPromptId: number | null; // ドメイン特化モード用
-  currentRepositoryId: number | null; // リポジトリツール呼び出し用
+  currentRepositoryPath: string | null; // リポジトリツール呼び出し用
   messages: Message[];
 
   // セッション一覧
@@ -37,7 +37,7 @@ interface ChatState {
   setCurrentModel: (model: string) => void;
   setCurrentPresetId: (presetId: number | null) => void;
   setCurrentDomainPromptId: (domainPromptId: number | null) => void;
-  setCurrentRepositoryId: (repositoryId: number | null) => void;
+  setCurrentRepositoryPath: (repositoryPath: string | null) => void;
   addMessage: (message: Message) => void;
   setMessages: (messages: Message[]) => void;
   removeLastAssistantMessage: () => Message | null;
@@ -61,7 +61,7 @@ export const useChatStore = create<ChatState>((set) => ({
   currentModel: '',
   currentPresetId: null,
   currentDomainPromptId: null,
-  currentRepositoryId: null,
+  currentRepositoryPath: null,
   messages: [],
   sessions: [],
   models: [],
@@ -85,7 +85,7 @@ export const useChatStore = create<ChatState>((set) => ({
   setCurrentModel: (model) => set({ currentModel: model }),
   setCurrentPresetId: (presetId) => set({ currentPresetId: presetId }),
   setCurrentDomainPromptId: (domainPromptId) => set({ currentDomainPromptId: domainPromptId }),
-  setCurrentRepositoryId: (repositoryId) => set({ currentRepositoryId: repositoryId }),
+  setCurrentRepositoryPath: (repositoryPath) => set({ currentRepositoryPath: repositoryPath }),
   addMessage: (message) => set((state) => ({
     messages: [...state.messages, message]
   })),

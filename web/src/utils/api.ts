@@ -339,18 +339,7 @@ export async function fetchDomainPrompts(domainId: number): Promise<{ prompts: D
   return response.json();
 }
 
-// リポジトリ一覧を取得（データベースから）
-export async function fetchRepositories(): Promise<RepositoriesResponse> {
-  const response = await authenticatedFetch(`${API_BASE_URL}/repositories`);
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch repositories');
-  }
-
-  return response.json();
-}
-
-// Gitリポジトリをスキャン（ローカルファイルシステムから）
+// Gitリポジトリをスキャン（ローカルファイルシステムから自動検出）
 export async function fetchGitRepositories(): Promise<{ repositories: Array<{ name: string; path: string }> }> {
   const response = await authenticatedFetch(`${API_BASE_URL}/git-repos`);
 

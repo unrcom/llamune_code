@@ -41,7 +41,7 @@ export interface ChatMessagesRequest {
   presetId?: number;
   history?: ChatMessage[];
   domainPromptId?: number; // ドメイン特化モード用
-  repositoryId?: number; // リポジトリID（ツール呼び出し用）
+  repositoryPath?: string; // リポジトリパス（ツール呼び出し用）
   workingBranch?: string; // 作業ブランチ
 }
 

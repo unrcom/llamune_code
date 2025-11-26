@@ -15,7 +15,6 @@ import {
   getParameterPresetById,
   getAllParameterPresets,
   updateSessionModel,
-  setSessionRepository,
 } from '../utils/database.js';
 import { repositoryTools, type OllamaTool } from '../utils/repository-tools.js';
 import { executeRepositoryTool } from '../utils/tool-executor.js';
@@ -30,7 +29,7 @@ export class ChatSession {
   private parameters?: ChatParameters;
   private userId?: number;
   private systemPrompt?: string;
-  private repositoryId?: number;
+  private repositoryPath?: string;
   private workingBranch?: string;
 
   constructor(
@@ -40,7 +39,7 @@ export class ChatSession {
     parameters?: ChatParameters,
     userId?: number,
     systemPrompt?: string,
-    repositoryId?: number,
+    repositoryPath?: string,
     workingBranch?: string
   ) {
     this.model = model;
@@ -51,7 +50,7 @@ export class ChatSession {
 
     // systemPromptが未指定の場合、デフォルトで日本語指示を含むプロンプトを設定
     this.systemPrompt = systemPrompt || '**必ず日本語で応答してください。**\n\nあなたは親切なAIアシスタントです。ユーザーの質問に丁寧に答えてください。';
-    this.repositoryId = repositoryId;
+    this.repositoryPath = repositoryPath;
     this.workingBranch = workingBranch;
 
     // system promptが指定されていて、messagesが空またはsystem roleがない場合、先頭に追加
@@ -204,7 +203,7 @@ export class ChatSession {
 
                     // ツールを実行（通知は内部処理のため非表示）
                     const result = await executeRepositoryTool(
-                      this.repositoryId!,
+                      this.repositoryPath!,
                       functionName,
                       args
                     );
@@ -459,14 +458,11 @@ export class ChatSession {
   /**
    * リポジトリを設定
    */
-  setRepository(repositoryId: number, workingBranch?: string): void {
-    this.repositoryId = repositoryId;
+  setRepository(repositoryPath: string, workingBranch?: string): void {
+    this.repositoryPath = repositoryPath;
     this.workingBranch = workingBranch;
 
-    // 既存セッションの場合はDBも更新
-    if (this.sessionId) {
-      setSessionRepository(this.sessionId, repositoryId, workingBranch);
-    }
+    // Note: リポジトリパスはセッションストレージから取得するため、DBへの保存は不要
   }
 
   /**

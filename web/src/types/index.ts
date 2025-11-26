@@ -104,7 +104,7 @@ export interface SendMessageParams {
   presetId?: number;
   history?: Message[];
   domainPromptId?: number; // ドメイン特化モード用
-  repositoryId?: number; // リポジトリツール呼び出し用
+  repositoryPath?: string; // リポジトリツール呼び出し用
 }
 
 // APIレスポンス型
