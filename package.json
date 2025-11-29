@@ -1,5 +1,5 @@
 {
-  "name": "llamune",
+  "name": "llamune_code",
   "version": "0.1.0",
   "description": "クローズドネットワーク環境で複数のローカルLLMを比較・活用するプラットフォーム",
   "main": "dist/index.js",
