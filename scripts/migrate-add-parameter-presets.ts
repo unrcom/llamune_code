@@ -61,12 +61,12 @@ try {
       {
         name: 'default',
         display_name: 'デフォルト',
-        description: 'バランスの取れた標準設定',
-        temperature: 0.7,
-        top_p: 0.9,
-        top_k: 40,
-        repeat_penalty: 1.1,
-        num_ctx: 2048,
+        description: 'LLMのデフォルト値を使用',
+        temperature: null,
+        top_p: null,
+        top_k: null,
+        repeat_penalty: null,
+        num_ctx: null,
       },
       {
         name: 'creative',

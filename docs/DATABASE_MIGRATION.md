@@ -73,8 +73,8 @@ npx tsx scripts/migrate-add-parameter-presets.ts
 - parameter_presets
 
 **登録されるプリセット:**
-- デフォルト (default): temp=0.7, top_p=0.9
-- 高感度 (creative): temp=1, top_p=0.95
+- デフォルト (default): すべてnull（LLMのデフォルト値を使用）
+- 高感度 (creative): temp=1.0, top_p=0.95
 - 事務的 (precise): temp=0.3, top_p=0.8
 
 **確認:**
