@@ -96,10 +96,10 @@ export class ChatSession {
       };
 
       // リポジトリが紐付いている場合はツールを含める
-      if (this.repositoryId) {
+      if (this.repositoryPath) {
         request.tools = repositoryTools;
         if (process.env.DEBUG_TOOL_CALLING === 'true') {
-          console.log('[DEBUG] Tools enabled, repository ID:', this.repositoryId);
+          console.log('[DEBUG] Tools enabled, repository path:', this.repositoryPath);
         }
       }
 
@@ -436,20 +436,14 @@ export class ChatSession {
         : this.messages.slice(-2); // user + assistant
       appendMessagesToSession(this.sessionId, newMessages);
 
-      // リポジトリ情報を保存
-      if (this.repositoryId) {
-        setSessionRepository(this.sessionId, this.repositoryId, this.workingBranch);
-      }
+      // Note: リポジトリパスはDBに保存せず、セッションストレージから取得する設計
 
       return this.sessionId;
     } else {
       // 新規セッション作成
       this.sessionId = saveConversation(this.model, this.messages, this.userId);
 
-      // リポジトリ情報を保存
-      if (this.repositoryId) {
-        setSessionRepository(this.sessionId, this.repositoryId, this.workingBranch);
-      }
+      // Note: リポジトリパスはDBに保存せず、セッションストレージから取得する設計
 
       return this.sessionId;
     }
@@ -468,9 +462,9 @@ export class ChatSession {
   /**
    * リポジトリ情報を取得
    */
-  getRepository(): { repositoryId?: number; workingBranch?: string } {
+  getRepository(): { repositoryPath?: string; workingBranch?: string } {
     return {
-      repositoryId: this.repositoryId,
+      repositoryPath: this.repositoryPath,
       workingBranch: this.workingBranch,
     };
   }
@@ -512,8 +506,8 @@ export class ChatSession {
       undefined,
       sessionData.session.user_id,
       undefined,
-      sessionData.session.repository_id || undefined,
-      sessionData.session.working_branch || undefined
+      undefined, // repositoryPath: セッションストレージから取得する設計のためundefined
+      undefined  // workingBranch: 同上
     );
   }
 }

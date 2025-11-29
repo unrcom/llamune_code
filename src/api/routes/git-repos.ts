@@ -4,7 +4,7 @@
 
 import { Router, Request, Response } from 'express';
 import { scanGitRepositories } from '../../utils/git-scanner.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateJWT } from '../middleware/jwt-auth.js';
 
 const router = Router();
 
@@ -12,7 +12,7 @@ const router = Router();
  * GET /api/git-repos
  * ローカルのGitリポジトリを検出
  */
-router.get('/', authenticateToken, async (req: Request, res: Response) => {
+router.get('/', authenticateJWT, async (req: Request, res: Response) => {
   try {
     const repos = scanGitRepositories();
 
