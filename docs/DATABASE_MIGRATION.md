@@ -143,21 +143,46 @@ sqlite3 ~/.llamune_code/history.db "SELECT * FROM domain_modes;"
 sqlite3 ~/.llamune_code/history.db "SELECT * FROM domain_prompts;"
 ```
 
-### ステップ6: アプリケーション開発ドメイン追加
+### ステップ6: 専門ドメイン追加
+
+```bash
+npx tsx scripts/migrate-replace-domains.ts
+```
+
+**前提条件:**
+- domain_modes テーブルに「汎用」ドメイン（ID: 1）が存在すること
+
+**実行内容:**
+- 汎用ドメインを削除
+- 5つの専門ドメインに置き換え
+
+**登録されるドメイン:**
+- 💰 会計・財務 (accounting)
+- ⚖️ 法律 (legal)
+- 🏥 医療・健康 (healthcare)
+- 📊 マーケティング (marketing)
+- 🔧 エンジニアリング (engineering)
+
+**確認:**
+```bash
+sqlite3 ~/.llamune_code/history.db "SELECT id, display_name FROM domain_modes;"
+```
+
+### ステップ7: アプリケーション開発ドメイン追加
 
 ```bash
 npx tsx scripts/migrate-add-app-dev-domain.ts
 ```
 
 **登録されるドメイン:**
-- アプリケーション開発 (app-development)
+- 💻 アプリケーション開発 (app-development)
   - コード生成 (code-generation) [デフォルト]
   - コードレビュー (code-review)
   - リファクタリング (refactoring)
   - バグ修正 (bug-fixing)
   - アーキテクチャ設計 (architecture-design)
 
-**確認:**
+**最終確認:**
 ```bash
 sqlite3 ~/.llamune_code/history.db "SELECT dm.display_name, dp.display_name FROM domain_prompts dp JOIN domain_modes dm ON dp.domain_mode_id = dm.id;"
 ```
@@ -181,20 +206,34 @@ npx tsx scripts/migrate-add-session-title.ts
 # 4. 認証機能追加
 npx tsx scripts/migrate-add-auth.ts
 
-# 5. ドメインモード機能追加
+# 5. ドメインモード機能追加（汎用ドメイン）
 npx tsx scripts/migrate-add-domain-modes.ts
 
-# 6. アプリケーション開発ドメイン追加
+# 6. 専門ドメイン追加（汎用を置き換え）
+npx tsx scripts/migrate-replace-domains.ts
+
+# 7. アプリケーション開発ドメイン追加
 npx tsx scripts/migrate-add-app-dev-domain.ts
 
-# 7. 最終確認
+# 8. 最終確認
 sqlite3 ~/.llamune_code/history.db ".tables"
+sqlite3 ~/.llamune_code/history.db "SELECT id, name, display_name FROM domain_modes;"
 ```
 
-**期待される出力:**
+**期待される出力（テーブル）:**
 ```
 domain_modes        messages            recommended_models  sessions
 domain_prompts      parameter_presets   refresh_tokens      users
+```
+
+**期待される出力（ドメイン）:**
+```
+1|accounting|会計・財務
+2|legal|法律
+3|healthcare|医療・健康
+4|marketing|マーケティング
+5|engineering|エンジニアリング
+6|app-development|アプリケーション開発
 ```
 
 ---
@@ -252,10 +291,16 @@ migrate-add-auth.ts
     ↓
 migrate-add-domain-modes.ts  (← parameter_presetsに依存)
     ↓
+migrate-replace-domains.ts   (← domain_modesに依存、汎用ドメインを削除)
+    ↓
 migrate-add-app-dev-domain.ts
 ```
 
 **重要**: この順序を守って実行してください。
+
+**特に注意:**
+- `migrate-replace-domains.ts` は汎用ドメイン（ID: 1）を削除します
+- `migrate-add-domain-modes.ts` の後に必ず実行してください
 
 ---
 
