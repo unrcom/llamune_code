@@ -1,13 +1,17 @@
-# Llamune (ラムネ/ラミューン)
+# Llamune Code
 
-クローズドネットワーク環境で複数のローカル LLM を比較・活用するプラットフォーム
+コーディング支援に特化した Llamune のフォーク版
 
 [![Status](https://img.shields.io/badge/status-alpha-green)]()
 [![License](https://img.shields.io/badge/license-MIT-blue)]()
 
+> **Note**: これは [Llamune](https://llamune.com) のコーディング支援特化版です。
+> リポジトリツール（10種類）を活用して、LLM がコードベースに直接アクセスできます。
+
 ## 🎯 概要
 
-Llamune は、機密情報を外部に送信せず、複数のローカル LLM を活用できるプラットフォームです。
+Llamune Code は、機密情報を外部に送信せず、ローカル LLM でコーディング支援を受けられるプラットフォームです。
+オリジナルの Llamune に加えて、Git 操作やファイル操作などのリポジトリツールを提供します。
 
 ### 解決する 3 つの課題
 
@@ -16,6 +20,23 @@ Llamune は、機密情報を外部に送信せず、複数のローカル LLM �
 3. **業務への特化**: RAG/ファインチューニングでドメイン知識を注入
 
 ## ✨ 主要機能
+
+### 🛠️ リポジトリツール（Llamune Code 独自機能）
+
+LLM がコードベースに直接アクセスできる 10 種類のツールを提供：
+
+- 📖 **read_file** - ファイル読み取り
+- ✍️ **write_file** - ファイル書き込み
+- 📂 **list_files** - ディレクトリ一覧
+- 🔍 **search_code** - コード検索
+- 📊 **git_status** - Git ステータス確認
+- 📝 **git_diff** - 差分表示
+- 🌿 **create_branch** - ブランチ作成
+- 💾 **commit_changes** - コミット作成
+- 🌲 **get_file_tree** - ファイルツリー取得
+- 📜 **get_recent_commits** - コミット履歴
+
+詳細は [リポジトリツール使用ガイド](./docs/REPOSITORY_TOOLS.md) を参照してください。
 
 ### CLI 版（現在利用可能）
 
@@ -62,6 +83,11 @@ Llamune は様々な業務シーンで活用できます：
 - 🏢 **業界特化モード** - 会計監査、法律、医療など（準備中）
 
 ## 📚 ドキュメント
+
+### Llamune Code 専用ドキュメント
+
+- [**リポジトリツール使用ガイド**](./docs/REPOSITORY_TOOLS.md) - ⭐ 10 種類のツール詳細
+- [**データベースマイグレーションガイド**](./docs/DATABASE_MIGRATION.md) - DB 構築手順
 
 ### サービス仕様・設計
 
@@ -220,8 +246,8 @@ llamune
 
 ```bash
 # リポジトリクローン
-git clone https://github.com/unrcom/llamune.git
-cd llamune
+git clone https://github.com/unrcom/llamune_code.git
+cd llamune_code
 
 # 依存関係インストール
 npm install
@@ -409,8 +435,9 @@ mop - [@unrcom](https://github.com/unrcom)
 
 ## 🔗 リンク
 
-- [GitHub リポジトリ](https://github.com/unrcom/llamune)
-- [公式サイト](https://llamune.com)（準備中）
+- [GitHub リポジトリ](https://github.com/unrcom/llamune_code)
+- [Llamune 公式サイト](https://llamune.com)（準備中）
+- [Llamune Code](https://code.llamune.com) → このリポジトリ
 - [ドキュメント](./docs/)
 
 ---

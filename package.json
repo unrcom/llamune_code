@@ -1,7 +1,7 @@
 {
   "name": "llamune_code",
   "version": "0.1.0",
-  "description": "クローズドネットワーク環境で複数のローカルLLMを比較・活用するプラットフォーム",
+  "description": "Llamune のコーディング支援特化版 - リポジトリツールで LLM がコードベースにアクセス",
   "main": "dist/index.js",
   "bin": {
     "llamune": "./bin/llamune.js",
