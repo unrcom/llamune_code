@@ -220,7 +220,82 @@ TOKEN=$(curl -X POST http://localhost:3000/api/auth/login \
   -s | jq -r '.accessToken')
 ```
 
-### テスト例: read_file
+### 包括的なテストワークフロー
+
+以下は、複数のツールを組み合わせた完全なテストフローです：
+
+**ステップ 1: テスト用ブランチを作成**
+```bash
+curl -X POST http://localhost:3000/api/chat/messages \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"content\": \"test/tool-verification という名前のテストブランチを作成してください\",
+    \"modelName\": \"llama3.1:8b\",
+    \"repositoryPath\": \"$(pwd)\",
+    \"workingBranch\": \"main\"
+  }" \
+  -N
+```
+
+**ステップ 2: テストファイルを作成**
+```bash
+curl -X POST http://localhost:3000/api/chat/messages \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"content\": \"test.txt というファイルを作成して、'Test for repository tools' という内容を書き込んでください\",
+    \"modelName\": \"llama3.1:8b\",
+    \"repositoryPath\": \"$(pwd)\",
+    \"workingBranch\": \"test/tool-verification\"
+  }" \
+  -N
+```
+
+**ステップ 3: 変更をコミット**
+```bash
+curl -X POST http://localhost:3000/api/chat/messages \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"content\": \"test.txt をコミットしてください。メッセージは 'Test commit tool' でお願いします\",
+    \"modelName\": \"llama3.1:8b\",
+    \"repositoryPath\": \"$(pwd)\",
+    \"workingBranch\": \"test/tool-verification\"
+  }" \
+  -N
+```
+
+**ステップ 4: コミット確認**
+```bash
+# ローカルで確認
+git log -1 --oneline
+git status
+```
+
+**ステップ 5: テストブランチの削除（クリーンアップ）**
+```bash
+# 開発ブランチに戻る
+git checkout main  # または開発中のブランチ
+
+# テストブランチを削除
+git branch -D test/tool-verification
+```
+
+このワークフローで以下のツールをテストできます：
+- ✅ `create_branch` - ブランチ作成
+- ✅ `write_file` - ファイル作成
+- ✅ `commit_changes` - コミット作成
+- ✅ `git_status` - ステータス確認（手動）
+- ✅ `git_log` - コミット履歴確認（手動）
+
+---
+
+### 個別ツールのテスト例
+
+以下は個別ツールの動作確認例です。本番環境では上記の包括的なワークフローを推奨します。
+
+#### read_file - ファイル読み取り
 
 ```bash
 curl -X POST http://localhost:3000/api/chat/messages \
@@ -235,7 +310,7 @@ curl -X POST http://localhost:3000/api/chat/messages \
   -N
 ```
 
-### テスト例: git_status
+#### git_status - Gitステータス確認
 
 ```bash
 curl -X POST http://localhost:3000/api/chat/messages \
@@ -250,7 +325,7 @@ curl -X POST http://localhost:3000/api/chat/messages \
   -N
 ```
 
-### テスト例: search_code
+#### search_code - コード検索
 
 ```bash
 curl -X POST http://localhost:3000/api/chat/messages \
