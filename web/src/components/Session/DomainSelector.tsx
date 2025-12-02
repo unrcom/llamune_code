@@ -59,30 +59,26 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
   // 推論モードを選択
   const handleReasoningMode = () => {
     setSelectedMode('reasoning');
-    setStep('repository');
+    // 推論モードはリポジトリ選択不要
+    onSelect(null, null);
+    onClose();
   };
 
   // ドメイン特化モードを選択
   const handleDomainMode = () => {
     setSelectedMode('domain');
-    setStep('repository');
+    setStep('domain');
+    loadDomains();
   };
 
-  // リポジトリを選択
+  // リポジトリを選択（「あなたの本職を支援するモード」専用）
   const handleSelectRepository = (repoPath: string | null) => {
     setSelectedRepositoryPath(repoPath);
-    if (selectedMode === 'reasoning') {
-      // 推論モードの場合、そのまま完了
-      onSelect(null, repoPath);
-      onClose();
-    } else {
-      // ドメイン特化モードの場合、ドメイン選択へ
-      setStep('domain');
-      loadDomains();
-    }
+    // リポジトリ選択後、すぐに「あなたの本職を支援するモード」を実行
+    handleProfessionalModeWithRepository(repoPath);
   };
 
-  // ドメインを選択
+  // ドメインを選択（その他のドメイン）
   const handleSelectDomain = async (domain: DomainMode) => {
     setStep('prompt');
     await loadPrompts(domain.id);
@@ -94,8 +90,13 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
     onClose();
   };
 
-  // 「あなたの本職を支援するモード」を選択（アプリケーション開発のデフォルトプロンプトを自動選択）
-  const handleProfessionalMode = async () => {
+  // 「あなたの本職を支援するモード」を選択 → リポジトリ選択へ
+  const handleProfessionalMode = () => {
+    setStep('repository');
+  };
+
+  // リポジトリ選択後に「あなたの本職を支援するモード」を実行
+  const handleProfessionalModeWithRepository = async (repoPath: string | null) => {
     try {
       setLoading(true);
 
@@ -110,7 +111,7 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
         const defaultPrompt = promptsResponse.prompts.find(p => p.is_default === 1);
 
         if (defaultPrompt) {
-          onSelect(defaultPrompt.id, selectedRepositoryPath);
+          onSelect(defaultPrompt.id, repoPath);
           onClose();
         }
       }
@@ -126,12 +127,12 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
     if (step === 'prompt') {
       setStep('domain');
       setPrompts([]);
-    } else if (step === 'domain') {
-      setStep('repository');
-      setDomains([]);
     } else if (step === 'repository') {
-      setStep('mode');
+      setStep('domain');
       setSelectedRepositoryPath(null);
+    } else if (step === 'domain') {
+      setStep('mode');
+      setDomains([]);
     }
   };
 
