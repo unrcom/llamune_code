@@ -83,6 +83,8 @@ export interface SessionsResponse {
     message_count: number;
     preview: string | null;
     title: string | null;
+    repository_path: string | null;
+    current_branch: string | null;
   }>;
 }
 
@@ -94,6 +96,8 @@ export interface SessionDetailResponse {
     id: number;
     model: string;
     created_at: string;
+    repository_path?: string | null;
+    current_branch?: string | null;
   };
   messages: ChatMessage[];
 }

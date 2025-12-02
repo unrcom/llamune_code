@@ -1,17 +1,21 @@
 import { useEffect, useState } from 'react';
 import { fetchDomainModes, fetchDomainPrompts } from '../../utils/api';
+import { useChatStore } from '../../store/chatStore';
 import type { DomainMode, DomainPrompt } from '../../types';
 
 interface DomainSelectorProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (domainPromptId: number | null) => void;
+  onSelect: (domainPromptId: number | null, repositoryPath?: string | null) => void;
 }
 
-type Step = 'mode' | 'domain' | 'prompt';
+type Step = 'mode' | 'repository' | 'domain' | 'prompt';
 
 export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProps) {
+  const repositories = useChatStore((state) => state.repositories);
   const [step, setStep] = useState<Step>('mode');
+  const [selectedMode, setSelectedMode] = useState<'reasoning' | 'domain' | null>(null);
+  const [selectedRepositoryPath, setSelectedRepositoryPath] = useState<string | null>(null);
   const [domains, setDomains] = useState<DomainMode[]>([]);
   const [prompts, setPrompts] = useState<DomainPrompt[]>([]);
   const [loading, setLoading] = useState(false);
@@ -20,6 +24,8 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
   useEffect(() => {
     if (isOpen) {
       setStep('mode');
+      setSelectedMode(null);
+      setSelectedRepositoryPath(null);
       setPrompts([]);
     }
   }, [isOpen]);
@@ -52,14 +58,28 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
 
   // 推論モードを選択
   const handleReasoningMode = () => {
-    onSelect(null); // domainPromptId = null → 推論モード
-    onClose();
+    setSelectedMode('reasoning');
+    setStep('repository');
   };
 
   // ドメイン特化モードを選択
-  const handleDomainMode = async () => {
-    setStep('domain');
-    await loadDomains();
+  const handleDomainMode = () => {
+    setSelectedMode('domain');
+    setStep('repository');
+  };
+
+  // リポジトリを選択
+  const handleSelectRepository = (repoPath: string | null) => {
+    setSelectedRepositoryPath(repoPath);
+    if (selectedMode === 'reasoning') {
+      // 推論モードの場合、そのまま完了
+      onSelect(null, repoPath);
+      onClose();
+    } else {
+      // ドメイン特化モードの場合、ドメイン選択へ
+      setStep('domain');
+      loadDomains();
+    }
   };
 
   // ドメインを選択
@@ -70,7 +90,7 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
 
   // プロンプトを選択
   const handleSelectPrompt = (prompt: DomainPrompt) => {
-    onSelect(prompt.id);
+    onSelect(prompt.id, selectedRepositoryPath);
     onClose();
   };
 
@@ -90,7 +110,7 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
         const defaultPrompt = promptsResponse.prompts.find(p => p.is_default === 1);
 
         if (defaultPrompt) {
-          onSelect(defaultPrompt.id);
+          onSelect(defaultPrompt.id, selectedRepositoryPath);
           onClose();
         }
       }
@@ -107,8 +127,11 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
       setStep('domain');
       setPrompts([]);
     } else if (step === 'domain') {
-      setStep('mode');
+      setStep('repository');
       setDomains([]);
+    } else if (step === 'repository') {
+      setStep('mode');
+      setSelectedRepositoryPath(null);
     }
   };
 
@@ -130,6 +153,7 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
             )}
             <h2 className="text-xl font-bold text-white">
               {step === 'mode' && '新しいチャット'}
+              {step === 'repository' && 'リポジトリを選択'}
               {step === 'domain' && 'ドメインを選択'}
               {step === 'prompt' && 'プロンプトを選択'}
             </h2>
@@ -179,7 +203,48 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
                 </>
               )}
 
-              {/* Step 2: ドメイン選択 */}
+              {/* Step 2: リポジトリ選択 */}
+              {step === 'repository' && (
+                <>
+                  <button
+                    onClick={() => handleSelectRepository(null)}
+                    className="w-full text-left p-4 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">⏭️</span>
+                      <div>
+                        <div className="font-semibold text-white">リポジトリなし</div>
+                        <div className="text-sm text-gray-400">リポジトリを使用せずに続行</div>
+                      </div>
+                    </div>
+                  </button>
+                  {repositories.length === 0 ? (
+                    <div className="text-center text-gray-400 py-4 text-sm">
+                      利用可能なリポジトリがありません
+                    </div>
+                  ) : (
+                    <>
+                      {repositories.map((repo) => (
+                        <button
+                          key={repo.id}
+                          onClick={() => handleSelectRepository(repo.local_path)}
+                          className="w-full text-left p-4 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">📁</span>
+                            <div>
+                              <div className="font-semibold text-white">{repo.name}</div>
+                              <div className="text-xs text-gray-500 mt-1 truncate">{repo.local_path}</div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* Step 3: ドメイン選択 */}
               {step === 'domain' && (
                 <>
                   {domains.length === 0 ? (

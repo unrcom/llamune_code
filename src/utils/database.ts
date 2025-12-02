@@ -24,6 +24,8 @@ export interface ChatSession {
   message_count: number;
   preview: string; // 最初のユーザーメッセージのプレビュー
   title: string | null; // セッションのタイトル
+  repository_path: string | null; // リポジトリパス
+  current_branch: string | null; // 現在のブランチ
 }
 
 /**
@@ -136,6 +138,18 @@ export function initDatabase(): Database.Database {
     db.exec('ALTER TABLE sessions ADD COLUMN title TEXT');
   }
 
+  // repository_pathカラムがなければ追加
+  const hasRepositoryPathColumn = tableInfo.some((col) => col.name === 'repository_path');
+  if (!hasRepositoryPathColumn) {
+    db.exec('ALTER TABLE sessions ADD COLUMN repository_path TEXT');
+  }
+
+  // current_branchカラムがなければ追加
+  const hasCurrentBranchColumn = tableInfo.some((col) => col.name === 'current_branch');
+  if (!hasCurrentBranchColumn) {
+    db.exec('ALTER TABLE sessions ADD COLUMN current_branch TEXT');
+  }
+
   // メッセージテーブル
   db.exec(`
     CREATE TABLE IF NOT EXISTS messages (
@@ -170,13 +184,17 @@ export function initDatabase(): Database.Database {
 /**
  * 新しいセッションを作成
  */
-export function createSession(model: string): number {
+export function createSession(
+  model: string,
+  repositoryPath?: string | null,
+  currentBranch?: string | null
+): number {
   const db = initDatabase();
   const now = new Date().toISOString();
 
   const result = db
-    .prepare('INSERT INTO sessions (model, created_at, updated_at) VALUES (?, ?, ?)')
-    .run(model, now, now);
+    .prepare('INSERT INTO sessions (model, repository_path, current_branch, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
+    .run(model, repositoryPath || null, currentBranch || null, now, now);
 
   db.close();
   return result.lastInsertRowid as number;
@@ -223,15 +241,17 @@ export function saveMessage(
 export function saveConversation(
   model: string,
   messages: ChatMessage[],
-  userId?: number
+  userId?: number,
+  repositoryPath?: string | null,
+  currentBranch?: string | null
 ): number {
   const db = initDatabase();
   const now = new Date().toISOString();
 
   // セッションを作成
   const sessionResult = db
-    .prepare('INSERT INTO sessions (model, user_id, created_at, updated_at) VALUES (?, ?, ?, ?)')
-    .run(model, userId || null, now, now);
+    .prepare('INSERT INTO sessions (model, user_id, repository_path, current_branch, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(model, userId || null, repositoryPath || null, currentBranch || null, now, now);
 
   const sessionId = sessionResult.lastInsertRowid as number;
 
@@ -287,6 +307,8 @@ export function listSessions(limit = 200, userId?: number): ChatSession[] {
         s.created_at,
         s.updated_at,
         s.title,
+        s.repository_path,
+        s.current_branch,
         COUNT(m.id) as message_count,
         (
           SELECT content
@@ -361,8 +383,11 @@ export function getSession(sessionId: number, userId?: number): {
         s.user_id,
         s.repository_id,
         s.working_branch,
+        s.repository_path,
+        s.current_branch,
         s.created_at,
         s.updated_at,
+        s.title,
         COUNT(m.id) as message_count,
         (
           SELECT content
@@ -662,7 +687,10 @@ export function getAllSessions(userId?: number): ChatSession[] {
       s.id,
       s.model,
       s.created_at,
+      s.updated_at,
       s.title,
+      s.repository_path,
+      s.current_branch,
       COUNT(m.id) as message_count,
       (SELECT content FROM messages WHERE session_id = s.id AND role = 'user' AND deleted_at IS NULL ORDER BY id ASC LIMIT 1) as preview
     FROM sessions s

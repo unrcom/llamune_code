@@ -6,7 +6,7 @@ import type { Session } from '../../types';
 import { DomainSelector } from './DomainSelector';
 
 export function SessionList() {
-  const { currentSessionId, setCurrentSession, setMessages, resetChat, setSessions, setMobileView, setCurrentDomainPromptId } = useChatStore();
+  const { currentSessionId, setCurrentSession, setMessages, resetChat, setSessions, setMobileView, setCurrentDomainPromptId, setCurrentRepositoryPath } = useChatStore();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [sessions, setLocalSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(false);
@@ -46,6 +46,12 @@ export function SessionList() {
       const response = await fetchSession(sessionId);
       setCurrentSession(sessionId);
       setMessages(response.messages);
+      // セッションに紐付いたリポジトリを復元
+      if (response.session.repository_path) {
+        setCurrentRepositoryPath(response.session.repository_path);
+      } else {
+        setCurrentRepositoryPath(null);
+      }
       setMobileView('chat'); // モバイルでチャット画面に切り替え
     } catch (error) {
       console.error('Failed to load session:', error);
@@ -77,9 +83,10 @@ export function SessionList() {
     setShowDomainSelector(true);
   };
 
-  const handleDomainSelect = (domainPromptId: number | null) => {
+  const handleDomainSelect = (domainPromptId: number | null, repositoryPath?: string | null) => {
     resetChat();
     setCurrentDomainPromptId(domainPromptId);
+    setCurrentRepositoryPath(repositoryPath || null);
     setMobileView('chat'); // モバイルでチャット画面に切り替え
   };
 

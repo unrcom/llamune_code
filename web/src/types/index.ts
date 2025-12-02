@@ -13,6 +13,8 @@ export interface Session {
   message_count: number;
   preview: string;
   title: string | null;
+  repository_path: string | null;
+  current_branch: string | null;
 }
 
 // チャットパラメータ型

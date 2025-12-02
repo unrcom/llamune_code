@@ -436,14 +436,16 @@ export class ChatSession {
         : this.messages.slice(-2); // user + assistant
       appendMessagesToSession(this.sessionId, newMessages);
 
-      // Note: リポジトリパスはDBに保存せず、セッションストレージから取得する設計
-
       return this.sessionId;
     } else {
-      // 新規セッション作成
-      this.sessionId = saveConversation(this.model, this.messages, this.userId);
-
-      // Note: リポジトリパスはDBに保存せず、セッションストレージから取得する設計
+      // 新規セッション作成（リポジトリ情報も保存）
+      this.sessionId = saveConversation(
+        this.model,
+        this.messages,
+        this.userId,
+        this.repositoryPath,
+        this.workingBranch
+      );
 
       return this.sessionId;
     }
@@ -455,8 +457,6 @@ export class ChatSession {
   setRepository(repositoryPath: string, workingBranch?: string): void {
     this.repositoryPath = repositoryPath;
     this.workingBranch = workingBranch;
-
-    // Note: リポジトリパスはセッションストレージから取得するため、DBへの保存は不要
   }
 
   /**
@@ -506,8 +506,8 @@ export class ChatSession {
       undefined,
       sessionData.session.user_id,
       undefined,
-      undefined, // repositoryPath: セッションストレージから取得する設計のためundefined
-      undefined  // workingBranch: 同上
+      sessionData.session.repository_path || undefined,
+      sessionData.session.current_branch || undefined
     );
   }
 }
