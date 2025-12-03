@@ -9,7 +9,7 @@ import { UserMenu } from '../Auth/UserMenu';
 import { RepositorySelector } from '../Repository/RepositorySelector';
 
 export function ChatWindow() {
-  const { messages, currentModel, currentPresetId, currentDomainPromptId, models, presets, error, isRetryPending, setCurrentModel, acceptRetry, rejectRetry, setMobileView } = useChatStore();
+  const { messages, currentModel, currentPresetId, currentDomainPromptId, isProfessionalMode, models, presets, error, isRetryPending, setCurrentModel, acceptRetry, rejectRetry, setMobileView } = useChatStore();
   const { sendMessage, retryMessage, streamingContent, isStreaming } = useChat();
   const [isRetryModalOpen, setIsRetryModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -63,7 +63,7 @@ export function ChatWindow() {
                 ))}
               </select>
             )}
-            <RepositorySelector />
+            {isProfessionalMode && <RepositorySelector />}
           </div>
           <UserMenu />
         </div>
