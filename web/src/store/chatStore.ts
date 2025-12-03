@@ -8,6 +8,7 @@ interface ChatState {
   currentPresetId: number | null;
   currentDomainPromptId: number | null; // ドメイン特化モード用
   currentRepositoryPath: string | null; // リポジトリツール呼び出し用
+  isProfessionalMode: boolean; // あなたの本職を支援するモード（app-development）かどうか
   messages: Message[];
 
   // セッション一覧
@@ -38,6 +39,7 @@ interface ChatState {
   setCurrentPresetId: (presetId: number | null) => void;
   setCurrentDomainPromptId: (domainPromptId: number | null) => void;
   setCurrentRepositoryPath: (repositoryPath: string | null) => void;
+  setIsProfessionalMode: (isProfessional: boolean) => void;
   addMessage: (message: Message) => void;
   setMessages: (messages: Message[]) => void;
   removeLastAssistantMessage: () => Message | null;
@@ -62,6 +64,7 @@ export const useChatStore = create<ChatState>((set) => ({
   currentPresetId: null,
   currentDomainPromptId: null,
   currentRepositoryPath: null,
+  isProfessionalMode: false,
   messages: [],
   sessions: [],
   models: [],
@@ -86,6 +89,7 @@ export const useChatStore = create<ChatState>((set) => ({
   setCurrentPresetId: (presetId) => set({ currentPresetId: presetId }),
   setCurrentDomainPromptId: (domainPromptId) => set({ currentDomainPromptId: domainPromptId }),
   setCurrentRepositoryPath: (repositoryPath) => set({ currentRepositoryPath: repositoryPath }),
+  setIsProfessionalMode: (isProfessional) => set({ isProfessionalMode: isProfessional }),
   addMessage: (message) => set((state) => ({
     messages: [...state.messages, message]
   })),
@@ -141,6 +145,7 @@ export const useChatStore = create<ChatState>((set) => ({
   resetChat: () => set({
     currentSessionId: null,
     currentDomainPromptId: null,
+    isProfessionalMode: false,
     messages: [],
     error: null,
     isRetryPending: false,
