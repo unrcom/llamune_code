@@ -298,8 +298,9 @@ router.get('/sessions/:id', (req: Request, res: Response) => {
     };
     res.json(response);
   } catch (error) {
+    console.error('Error fetching session:', error);
     const apiError: ApiError = {
-      error: 'Failed to fetch session',
+      error: error instanceof Error ? error.message : 'Failed to fetch session',
       code: 'INTERNAL_ERROR',
       statusCode: 500,
     };

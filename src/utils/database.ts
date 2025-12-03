@@ -150,6 +150,24 @@ export function initDatabase(): Database.Database {
     db.exec('ALTER TABLE sessions ADD COLUMN current_branch TEXT');
   }
 
+  // user_idカラムがなければ追加
+  const hasUserIdColumn = tableInfo.some((col) => col.name === 'user_id');
+  if (!hasUserIdColumn) {
+    db.exec('ALTER TABLE sessions ADD COLUMN user_id INTEGER');
+  }
+
+  // repository_idカラムがなければ追加
+  const hasRepositoryIdColumn = tableInfo.some((col) => col.name === 'repository_id');
+  if (!hasRepositoryIdColumn) {
+    db.exec('ALTER TABLE sessions ADD COLUMN repository_id INTEGER');
+  }
+
+  // working_branchカラムがなければ追加
+  const hasWorkingBranchColumn = tableInfo.some((col) => col.name === 'working_branch');
+  if (!hasWorkingBranchColumn) {
+    db.exec('ALTER TABLE sessions ADD COLUMN working_branch TEXT');
+  }
+
   // メッセージテーブル
   db.exec(`
     CREATE TABLE IF NOT EXISTS messages (
@@ -410,7 +428,8 @@ export function getSession(sessionId: number, userId?: number): {
   }
 
   // 所有者チェック（userIdが指定されている場合）
-  if (userId !== undefined && session.user_id !== userId) {
+  // 古いセッション（user_idがnull）は全てのユーザーがアクセス可能
+  if (userId !== undefined && session.user_id !== null && session.user_id !== undefined && session.user_id !== userId) {
     db.close();
     return null;
   }
