@@ -428,10 +428,17 @@ export function getSession(sessionId: number, userId?: number): {
   }
 
   // 所有者チェック（userIdが指定されている場合）
-  // 古いセッション（user_idがnull）は全てのユーザーがアクセス可能
-  if (userId !== undefined && session.user_id !== null && session.user_id !== undefined && session.user_id !== userId) {
-    db.close();
-    return null;
+  if (userId !== undefined) {
+    // user_idがnullの古いセッションはアクセス拒否（セキュリティ上の理由）
+    if (session.user_id === null || session.user_id === undefined) {
+      db.close();
+      return null;
+    }
+    // 所有者が一致しない場合もアクセス拒否
+    if (session.user_id !== userId) {
+      db.close();
+      return null;
+    }
   }
 
   // メッセージを取得（論理削除されていないもののみ）
