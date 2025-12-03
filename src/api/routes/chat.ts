@@ -250,6 +250,8 @@ router.get('/sessions', (req: Request, res: Response) => {
         message_count: s.message_count,
         preview: s.preview,
         title: s.title,
+        repository_path: s.repository_path,
+        current_branch: s.current_branch,
       })),
     };
     res.json(response);

@@ -33,7 +33,9 @@
     "cleanup-llamune-db": "tsx scripts/cleanup-llamune-db.ts",
     "cleanup-admin-chats": "tsx scripts/cleanup-admin-chats.ts",
     "check-sessions": "tsx scripts/check-sessions.ts",
-    "delete-sessions": "tsx scripts/delete-sessions.ts"
+    "delete-sessions": "tsx scripts/delete-sessions.ts",
+    "migrate-sessions": "tsx scripts/migrate-legacy-sessions.ts",
+    "create-user": "tsx scripts/create-test-user.ts"
   },
   "keywords": [
     "llm",
@@ -68,7 +70,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^20.10.6",
+    "@types/node": "^20.19.25",
     "@types/react": "^18.2.46",
     "@typescript-eslint/eslint-plugin": "^6.16.0",
     "@typescript-eslint/parser": "^6.16.0",

@@ -429,12 +429,8 @@ export function getSession(sessionId: number, userId?: number): {
 
   // 所有者チェック（userIdが指定されている場合）
   if (userId !== undefined) {
-    // user_idがnullの古いセッションはアクセス拒否（セキュリティ上の理由）
-    if (session.user_id === null || session.user_id === undefined) {
-      db.close();
-      return null;
-    }
-    // 所有者が一致しない場合もアクセス拒否
+    // user_idとuserIdが一致するか確認
+    // Note: user_id が null の場合もチェックを行う
     if (session.user_id !== userId) {
       db.close();
       return null;
