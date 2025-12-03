@@ -16,6 +16,8 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
   const [step, setStep] = useState<Step>('mode');
   const [selectedMode, setSelectedMode] = useState<'reasoning' | 'domain' | null>(null);
   const [selectedRepositoryPath, setSelectedRepositoryPath] = useState<string | null>(null);
+  const [selectedDomain, setSelectedDomain] = useState<DomainMode | null>(null);
+  const [selectedPrompt, setSelectedPrompt] = useState<DomainPrompt | null>(null);
   const [domains, setDomains] = useState<DomainMode[]>([]);
   const [prompts, setPrompts] = useState<DomainPrompt[]>([]);
   const [loading, setLoading] = useState(false);
@@ -26,6 +28,8 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
       setStep('mode');
       setSelectedMode(null);
       setSelectedRepositoryPath(null);
+      setSelectedDomain(null);
+      setSelectedPrompt(null);
       setPrompts([]);
     }
   }, [isOpen]);
@@ -71,32 +75,51 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
     loadDomains();
   };
 
-  // リポジトリを選択（「あなたの本職を支援するモード」専用）
+  // リポジトリを選択
   const handleSelectRepository = (repoPath: string | null) => {
     setSelectedRepositoryPath(repoPath);
-    // リポジトリ選択後、すぐに「あなたの本職を支援するモード」を実行
-    handleProfessionalModeWithRepository(repoPath);
+    handleSelectRepositoryAndStart(repoPath);
   };
 
   // ドメインを選択（その他のドメイン）
   const handleSelectDomain = async (domain: DomainMode) => {
-    setStep('prompt');
-    await loadPrompts(domain.id);
+    setSelectedDomain(domain);
+    try {
+      setLoading(true);
+      const response = await fetchDomainPrompts(domain.id);
+      setPrompts(response.prompts);
+
+      // プロンプトが1つだけの場合は自動選択
+      if (response.prompts.length === 1) {
+        onSelect(response.prompts[0].id, null);
+        onClose();
+      } else {
+        // プロンプトが複数の場合は選択画面へ
+        setStep('prompt');
+      }
+    } catch (error) {
+      console.error('Failed to load prompts:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // プロンプトを選択
   const handleSelectPrompt = (prompt: DomainPrompt) => {
-    onSelect(prompt.id, selectedRepositoryPath);
-    onClose();
+    setSelectedPrompt(prompt);
+
+    // 「あなたの本職を支援するモード」（app-development）の場合はリポジトリ選択へ
+    if (selectedDomain?.name === 'app-development') {
+      setStep('repository');
+    } else {
+      // その他のドメインは直接チャット開始
+      onSelect(prompt.id, null);
+      onClose();
+    }
   };
 
-  // 「あなたの本職を支援するモード」を選択 → リポジトリ選択へ
-  const handleProfessionalMode = () => {
-    setStep('repository');
-  };
-
-  // リポジトリ選択後に「あなたの本職を支援するモード」を実行
-  const handleProfessionalModeWithRepository = async (repoPath: string | null) => {
+  // 「あなたの本職を支援するモード」を選択 → プロンプト選択へ
+  const handleProfessionalMode = async () => {
     try {
       setLoading(true);
 
@@ -105,20 +128,24 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
       const appDevDomain = response.domains.find(d => d.name === 'app-development');
 
       if (appDevDomain) {
-        // アプリケーション開発のプロンプトを取得
+        setSelectedDomain(appDevDomain);
+        // プロンプト一覧を取得して選択画面へ
         const promptsResponse = await fetchDomainPrompts(appDevDomain.id);
-        // デフォルトプロンプト（コード生成）を探す
-        const defaultPrompt = promptsResponse.prompts.find(p => p.is_default === 1);
-
-        if (defaultPrompt) {
-          onSelect(defaultPrompt.id, repoPath);
-          onClose();
-        }
+        setPrompts(promptsResponse.prompts);
+        setStep('prompt');
       }
     } catch (error) {
-      console.error('Failed to select professional mode:', error);
+      console.error('Failed to load professional mode prompts:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // リポジトリ選択後にチャット開始（選択済みプロンプトを使用）
+  const handleSelectRepositoryAndStart = (repoPath: string | null) => {
+    if (selectedPrompt) {
+      onSelect(selectedPrompt.id, repoPath);
+      onClose();
     }
   };
 
@@ -127,12 +154,15 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
     if (step === 'prompt') {
       setStep('domain');
       setPrompts([]);
+      setSelectedPrompt(null);
     } else if (step === 'repository') {
-      setStep('domain');
+      // リポジトリ選択から戻る場合はプロンプト選択へ
+      setStep('prompt');
       setSelectedRepositoryPath(null);
     } else if (step === 'domain') {
       setStep('mode');
       setDomains([]);
+      setSelectedDomain(null);
     }
   };
 
