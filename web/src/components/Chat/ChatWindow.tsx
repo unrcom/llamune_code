@@ -48,9 +48,6 @@ export function ChatWindow() {
                 </svg>
               </button>
             )}
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              {currentDomainPromptId ? 'コード生成モード' : 'Llamune Chat'}
-            </h1>
             {models.length > 0 && (
               <select
                 value={currentModel}
