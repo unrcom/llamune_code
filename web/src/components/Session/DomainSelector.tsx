@@ -13,6 +13,7 @@ type Step = 'mode' | 'repository' | 'domain' | 'prompt';
 
 export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProps) {
   const repositories = useChatStore((state) => state.repositories);
+  const currentRepositoryPath = useChatStore((state) => state.currentRepositoryPath);
   const [step, setStep] = useState<Step>('mode');
   const [selectedMode, setSelectedMode] = useState<'reasoning' | 'domain' | null>(null);
   const [selectedRepositoryPath, setSelectedRepositoryPath] = useState<string | null>(null);
@@ -63,8 +64,8 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
   // 推論モードを選択
   const handleReasoningMode = () => {
     setSelectedMode('reasoning');
-    // 推論モードはリポジトリ選択不要
-    onSelect(null, null);
+    // 推論モードはドメインプロンプトなし、ヘッダーで選択されたリポジトリを使用
+    onSelect(null, currentRepositoryPath);
     onClose();
   };
 
@@ -91,7 +92,7 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
 
       // プロンプトが1つだけの場合は自動選択
       if (response.prompts.length === 1) {
-        onSelect(response.prompts[0].id, null);
+        onSelect(response.prompts[0].id, currentRepositoryPath);
         onClose();
       } else {
         // プロンプトが複数の場合は選択画面へ
@@ -112,8 +113,8 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
     if (selectedDomain?.name === 'app-development') {
       setStep('repository');
     } else {
-      // その他のドメインは直接チャット開始
-      onSelect(prompt.id, null);
+      // その他のドメインは直接チャット開始（ヘッダーで選択されたリポジトリを使用）
+      onSelect(prompt.id, currentRepositoryPath);
       onClose();
     }
   };
