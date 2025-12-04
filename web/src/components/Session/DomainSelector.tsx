@@ -6,7 +6,7 @@ import type { DomainMode, DomainPrompt } from '../../types';
 interface DomainSelectorProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (domainPromptId: number | null, repositoryPath?: string | null) => void;
+  onSelect: (domainPromptId: number | null, repositoryPath?: string | null, isProfessionalMode?: boolean) => void;
 }
 
 type Step = 'mode' | 'repository' | 'domain' | 'prompt';
@@ -67,7 +67,7 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
     setSelectedMode('reasoning');
     setIsProfessionalMode(false);
     // 推論モードはドメインプロンプトなし、ヘッダーで選択されたリポジトリを使用
-    onSelect(null, currentRepositoryPath);
+    onSelect(null, currentRepositoryPath, false);
     onClose();
   };
 
@@ -95,7 +95,7 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
       // プロンプトが1つだけの場合は自動選択
       if (response.prompts.length === 1) {
         setIsProfessionalMode(false); // 他のドメイン
-        onSelect(response.prompts[0].id, currentRepositoryPath);
+        onSelect(response.prompts[0].id, currentRepositoryPath, false);
         onClose();
       } else {
         // プロンプトが複数の場合は選択画面へ
@@ -118,7 +118,7 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
     } else {
       // その他のドメインは直接チャット開始（ヘッダーで選択されたリポジトリを使用）
       setIsProfessionalMode(false);
-      onSelect(prompt.id, currentRepositoryPath);
+      onSelect(prompt.id, currentRepositoryPath, false);
       onClose();
     }
   };
@@ -150,7 +150,7 @@ export function DomainSelector({ isOpen, onClose, onSelect }: DomainSelectorProp
   const handleSelectRepositoryAndStart = (repoPath: string | null) => {
     if (selectedPrompt) {
       setIsProfessionalMode(true); // あなたの本職を支援するモード
-      onSelect(selectedPrompt.id, repoPath);
+      onSelect(selectedPrompt.id, repoPath, true);
       onClose();
     }
   };

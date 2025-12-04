@@ -6,7 +6,7 @@ import type { Session } from '../../types';
 import { DomainSelector } from './DomainSelector';
 
 export function SessionList() {
-  const { currentSessionId, setCurrentSession, setMessages, resetChat, setSessions, setMobileView, setCurrentDomainPromptId, setCurrentRepositoryPath } = useChatStore();
+  const { currentSessionId, setCurrentSession, setMessages, resetChat, setSessions, setMobileView, setCurrentDomainPromptId, setCurrentRepositoryPath, setIsProfessionalMode } = useChatStore();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [sessions, setLocalSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(false);
@@ -83,10 +83,13 @@ export function SessionList() {
     setShowDomainSelector(true);
   };
 
-  const handleDomainSelect = (domainPromptId: number | null, repositoryPath?: string | null) => {
+  const handleDomainSelect = (domainPromptId: number | null, repositoryPath?: string | null, isProfessionalMode?: boolean) => {
     resetChat();
     setCurrentDomainPromptId(domainPromptId);
     setCurrentRepositoryPath(repositoryPath || null);
+    if (isProfessionalMode) {
+      setIsProfessionalMode(true);
+    }
     setMobileView('chat'); // モバイルでチャット画面に切り替え
   };
 
