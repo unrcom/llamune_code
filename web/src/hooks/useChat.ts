@@ -29,6 +29,7 @@ export function useChat() {
     currentModel,
     currentDomainPromptId,
     currentRepositoryPath,
+    currentBranch,
     messages,
     addMessage,
     removeLastAssistantMessage,
@@ -67,6 +68,7 @@ export function useChat() {
           history: currentSessionId ? undefined : messages,
           domainPromptId: currentDomainPromptId,
           repositoryPath: currentRepositoryPath,
+          workingBranch: currentBranch,
         }),
       });
 

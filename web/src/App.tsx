@@ -11,6 +11,8 @@ function App() {
   const setModels = useChatStore((state) => state.setModels);
   const setPresets = useChatStore((state) => state.setPresets);
   const setRepositories = useChatStore((state) => state.setRepositories);
+  const currentRepositoryPath = useChatStore((state) => state.currentRepositoryPath);
+  const setCurrentBranch = useChatStore((state) => state.setCurrentBranch);
   const mobileView = useChatStore((state) => state.mobileView);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const clearAuth = useAuthStore((state) => state.clearAuth);
@@ -105,6 +107,56 @@ function App() {
     loadPresets();
     loadRepositories();
   }, [isAuthenticated, isValidating, setModels, setPresets, setRepositories]);
+
+  // リポジトリが変更されたらブランチ一覧を取得してカレントブランチを設定
+  useEffect(() => {
+    console.log('[App.tsx] Repository changed:', currentRepositoryPath);
+
+    if (!currentRepositoryPath || !isAuthenticated) {
+      return;
+    }
+
+    const fetchAndSetCurrentBranch = async () => {
+      try {
+        console.log('[App.tsx] Fetching branches...'); 
+
+        const authStore = await import('./store/authStore');
+        const tokens = authStore.useAuthStore.getState().tokens;
+        
+        if (!tokens?.accessToken) {
+          return;
+        }
+
+        const response = await fetch(
+          `/api/git-repos/branches?path=${encodeURIComponent(currentRepositoryPath)}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${tokens.accessToken}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch branches');
+        }
+
+        const data = await response.json();
+        const localBranches = data.branches.filter((b: any) => !b.remote);
+        
+        // カレントブランチを見つけて設定
+        const currentBranch = localBranches.find((b: any) => b.current);
+        if (currentBranch) {
+          console.log('[App.tsx] Setting branch:', currentBranch.name);
+          
+          setCurrentBranch(currentBranch.name);
+        }
+      } catch (error) {
+        console.error('Failed to fetch and set current branch:', error);
+      }
+    };
+
+    fetchAndSetCurrentBranch();
+  }, [currentRepositoryPath, isAuthenticated, setCurrentBranch]);
 
   useEffect(() => {
     // モバイル判定

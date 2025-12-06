@@ -8,6 +8,7 @@ interface ChatState {
   currentPresetId: number | null;
   currentDomainPromptId: number | null; // ドメイン特化モード用
   currentRepositoryPath: string | null; // リポジトリツール呼び出し用
+  currentBranch: string | null;
   isProfessionalMode: boolean; // あなたの本職を支援するモード（app-development）かどうか
   messages: Message[];
 
@@ -39,6 +40,7 @@ interface ChatState {
   setCurrentPresetId: (presetId: number | null) => void;
   setCurrentDomainPromptId: (domainPromptId: number | null) => void;
   setCurrentRepositoryPath: (repositoryPath: string | null) => void;
+  setCurrentBranch: (branch: string | null) => void;
   setIsProfessionalMode: (isProfessional: boolean) => void;
   addMessage: (message: Message) => void;
   setMessages: (messages: Message[]) => void;
@@ -64,6 +66,7 @@ export const useChatStore = create<ChatState>((set) => ({
   currentPresetId: null,
   currentDomainPromptId: null,
   currentRepositoryPath: null,
+  currentBranch: null,
   isProfessionalMode: false,
   messages: [],
   sessions: [],
@@ -89,6 +92,7 @@ export const useChatStore = create<ChatState>((set) => ({
   setCurrentPresetId: (presetId) => set({ currentPresetId: presetId }),
   setCurrentDomainPromptId: (domainPromptId) => set({ currentDomainPromptId: domainPromptId }),
   setCurrentRepositoryPath: (repositoryPath) => set({ currentRepositoryPath: repositoryPath }),
+  setCurrentBranch: (branch) => set({ currentBranch: branch }), 
   setIsProfessionalMode: (isProfessional) => set({ isProfessionalMode: isProfessional }),
   addMessage: (message) => set((state) => ({
     messages: [...state.messages, message]
@@ -145,6 +149,7 @@ export const useChatStore = create<ChatState>((set) => ({
   resetChat: () => set({
     currentSessionId: null,
     currentDomainPromptId: null,
+    currentBranch: null,
     isProfessionalMode: false,
     messages: [],
     error: null,

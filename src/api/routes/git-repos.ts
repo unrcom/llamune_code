@@ -27,4 +27,32 @@ router.get('/', authenticateJWT, async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /api/git-repos/branches
+ * 指定されたリポジトリのブランチ一覧を取得
+ */
+router.get('/branches', authenticateJWT, async (req: Request, res: Response) => {
+  try {
+    const { path } = req.query;
+
+    if (!path || typeof path !== 'string') {
+      return res.status(400).json({
+        error: 'Repository path is required',
+      });
+    }
+
+    const { listBranches } = await import('../../utils/git.js');
+    const branches = await listBranches(path);
+
+    res.json({
+      branches,
+    });
+  } catch (error) {
+    console.error('Failed to list branches:', error);
+    res.status(500).json({
+      error: 'Failed to list branches',
+    });
+  }
+});
+
 export default router;

@@ -11,6 +11,7 @@ import {
   listBranches,
   getCurrentBranch,
   createBranch,
+  checkoutBranch,
   getCommitHistory,
   getStatus,
   addFiles,
@@ -30,10 +31,24 @@ const execAsync = promisify(exec);
 export async function executeRepositoryTool(
   repositoryPath: string,
   toolName: string,
-  args: Record<string, any>
+  args: Record<string, any>,
+  workingBranch?: string
 ): Promise<ToolCallResult> {
   try {
     const repoPath = repositoryPath;
+
+    // ブランチが指定されている場合はチェックアウト
+    if (workingBranch) {
+      try {
+        console.log(`[BRANCH] Attempting to checkout: ${workingBranch}`);
+        await checkoutBranch(repoPath, workingBranch);
+        console.log(`[BRANCH] Successfully checked out: ${workingBranch}`);
+      } catch (error: any) {
+        console.warn(`[BRANCH] Failed to checkout branch ${workingBranch}:`, error.message);
+        console.warn(`Failed to checkout branch ${workingBranch}:`, error.message);
+        // ブランチ切り替えに失敗してもツール実行は継続
+      }
+    }
 
     // ツールごとに処理を分岐
     switch (toolName) {
