@@ -29,3 +29,4 @@ Thumbs.db
 
 # API Keys (sensitive)
 config/api-keys.json
+current_schema.sql

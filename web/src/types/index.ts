@@ -165,6 +165,7 @@ export interface AuthTokens {
 
 export interface RefreshTokenResponse {
   accessToken: string;
+  refreshToken: string;
 }
 
 // リポジトリ型

@@ -55,12 +55,15 @@ async function refreshAccessToken(): Promise<boolean> {
     if (!response.ok) {
       // リフレッシュトークンが無効な場合はログアウト
       useAuthStore.getState().clearAuth();
+      localStorage.removeItem('llamune-auth');
       return false;
     }
 
     const data: RefreshTokenResponse = await response.json();
-    useAuthStore.getState().updateAccessToken(data.accessToken);
-    return true;
+    useAuthStore.getState().updateTokens({
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+    });    return true;
   } catch (error) {
     console.error('Failed to refresh token:', error);
     return false;

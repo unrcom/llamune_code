@@ -9,8 +9,11 @@ interface MessageListProps {
 }
 
 export function MessageList({ messages, streamingContent, onRetry, isStreaming }: MessageListProps) {
-  // 最後のアシスタントメッセージのインデックスを取得
-  const lastAssistantIndex = messages.reduceRight((acc, msg, idx) => {
+// userとassistantのメッセージのみをフィルター
+  const displayMessages = messages.filter((message) => message.role === 'user' || message.role === 'assistant');
+  
+  // 最後のアシスタントメッセージのインデックスを取得（フィルター後）
+  const lastAssistantIndex = displayMessages.reduceRight((acc, msg, idx) => {
     if (acc === -1 && msg.role === 'assistant') {
       return idx;
     }
@@ -18,7 +21,7 @@ export function MessageList({ messages, streamingContent, onRetry, isStreaming }
   }, -1);
   return (
     <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-      {messages.map((message, index) => {
+      {displayMessages.map((message, index) => {
         const isLastAssistant = message.role === 'assistant' && index === lastAssistantIndex;
 
         return (

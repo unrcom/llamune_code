@@ -924,7 +924,10 @@ export function deleteUser(userId: number): boolean {
 export function saveRefreshToken(
   userId: number,
   token: string,
-  expiresAt: string
+  expiresAt: string,
+  deviceFingerprint?: string,
+  deviceType?: string,
+  createdVia: 'login' | 'refresh' = 'login'
 ): number {
   const db = initDatabase();
   const now = new Date().toISOString();
@@ -932,9 +935,11 @@ export function saveRefreshToken(
   try {
     const result = db
       .prepare(
-        'INSERT INTO refresh_tokens (user_id, token, expires_at, created_at) VALUES (?, ?, ?, ?)'
+        `INSERT INTO refresh_tokens 
+        (user_id, token, expires_at, created_at, device_fingerprint, device_type, last_used_at, created_via) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .run(userId, token, expiresAt, now);
+      .run(userId, token, expiresAt, now, deviceFingerprint, deviceType, now, createdVia);
 
     db.close();
     return result.lastInsertRowid as number;

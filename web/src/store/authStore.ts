@@ -12,6 +12,7 @@ interface AuthState {
   setAuth: (user: User, tokens: AuthTokens) => void;
   clearAuth: () => void;
   updateAccessToken: (accessToken: string) => void;
+  updateTokens: (tokens: AuthTokens) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -41,6 +42,11 @@ export const useAuthStore = create<AuthState>()(
         set((state) => ({
           tokens: state.tokens ? { ...state.tokens, accessToken } : null,
         })),
+
+      updateTokens: (tokens) => // ← これを追加
+        set({
+          tokens,
+        }),
     }),
     {
       name: 'llamune-auth',

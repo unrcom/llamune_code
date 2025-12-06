@@ -31,6 +31,7 @@ export class ChatSession {
   private systemPrompt?: string;
   private repositoryPath?: string;
   private workingBranch?: string;
+  private lastSavedMessageCount: number;
 
   constructor(
     model: string,
@@ -49,7 +50,19 @@ export class ChatSession {
     this.userId = userId;
 
     // systemPromptが未指定の場合、デフォルトで日本語指示を含むプロンプトを設定
-    this.systemPrompt = systemPrompt || '**必ず日本語で応答してください。**\n\nあなたは親切なAIアシスタントです。ユーザーの質問に丁寧に答えてください。';
+    let baseSystemPrompt = systemPrompt || '**必ず日本語で応答してください。**\n\nあなたは親切なAIアシスタントです。ユーザーの質問に丁寧に答えてください。';
+    
+    // リポジトリツールを使用する場合、安全性のための制約を追加
+    if (repositoryPath) {
+      baseSystemPrompt += '\n\n' +
+        '## 重要: ファイル操作の制限\n' +
+        '- read_file, list_files, search_code, get_file_tree, git_status, git_diff, get_recent_commits ツールは自由に使用できます\n' +
+        '- **write_file, commit_changes, create_branch ツールは、ユーザーが明示的に指示した場合のみ使用してください**\n' +
+        '- ファイルを読んだだけで勝手に書き込まないでください\n' +
+        '- ファイルを書き込む前に、必ずユーザーに確認を求めてください';
+    }
+    
+    this.systemPrompt = baseSystemPrompt;
     this.repositoryPath = repositoryPath;
     this.workingBranch = workingBranch;
 
@@ -60,6 +73,9 @@ export class ChatSession {
         content: this.systemPrompt,
       });
     }
+
+    // 初期化時点のメッセージ数を記録（既存セッション復元時は既に保存済み）
+    this.lastSavedMessageCount = this.messages.length;
   }
 
   /**
@@ -205,7 +221,8 @@ export class ChatSession {
                     const result = await executeRepositoryTool(
                       this.repositoryPath!,
                       functionName,
-                      args
+                      args,
+                      this.workingBranch
                     );
 
                     if (process.env.DEBUG_TOOL_CALLING === 'true') {
@@ -429,12 +446,22 @@ export class ChatSession {
       throw new Error('No messages to save');
     }
 
+    console.log('[DEBUG save()] sessionId:', this.sessionId);
+    console.log('[DEBUG save()] lastSavedMessageCount:', this.lastSavedMessageCount);
+    console.log('[DEBUG save()] current messages.length:', this.messages.length);
+
     if (this.sessionId) {
-      // retryの場合は最後のassistantメッセージのみ、通常は最後の2つ（user + assistant）
-      const newMessages = isRetry
-        ? this.messages.slice(-1)  // assistantのみ
-        : this.messages.slice(-2); // user + assistant
-      appendMessagesToSession(this.sessionId, newMessages);
+      // 前回保存以降の新しいメッセージを取得
+      const newMessages = this.messages.slice(this.lastSavedMessageCount);
+      
+      console.log('[DEBUG save()] newMessages count:', newMessages.length);
+      console.log('[DEBUG save()] newMessages roles:', newMessages.map(m => m.role));
+      
+      if (newMessages.length > 0) {
+        appendMessagesToSession(this.sessionId, newMessages);
+        // 保存位置を更新
+        this.lastSavedMessageCount = this.messages.length;
+      }
 
       return this.sessionId;
     } else {
@@ -446,6 +473,9 @@ export class ChatSession {
         this.repositoryPath,
         this.workingBranch
       );
+      
+      // 新規作成時も保存位置を更新
+      this.lastSavedMessageCount = this.messages.length;
 
       return this.sessionId;
     }

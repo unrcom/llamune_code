@@ -18,6 +18,7 @@ import {
 } from '../../utils/database.js';
 import { hashPassword, verifyPassword, validatePassword, validateUsername } from '../../utils/password.js';
 import { generateTokenPair, getRefreshTokenExpiry, generateAccessToken } from '../../utils/jwt.js';
+import { getDeviceInfo } from '../../utils/device.js';
 import { authenticateJWT, requireAdmin } from '../middleware/jwt.js';
 import {
   loginLimiter,
@@ -182,9 +183,19 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
       role: user.role,
     });
 
+    // デバイス情報を取得
+    const deviceInfo = getDeviceInfo(req);
+
     // リフレッシュトークンをデータベースに保存
     const expiresAt = getRefreshTokenExpiry();
-    saveRefreshToken(user.id, tokens.refreshToken, expiresAt.toISOString());
+    saveRefreshToken(
+      user.id,
+      tokens.refreshToken,
+      expiresAt.toISOString(),
+      deviceInfo.fingerprint,
+      deviceInfo.type,
+      'login'
+    );
 
     // 期限切れトークンをクリーンアップ
     cleanupExpiredRefreshTokens();
@@ -279,10 +290,20 @@ router.post('/refresh', async (req: Request, res: Response) => {
     // 古いリフレッシュトークンを削除
     deleteRefreshToken(refreshToken);
 
+    // デバイス情報を取得
+    const deviceInfo = getDeviceInfo(req);
+
     // 新しいリフレッシュトークンを保存
     const newExpiresAt = getRefreshTokenExpiry();
-    saveRefreshToken(user.id, tokens.refreshToken, newExpiresAt.toISOString());
-
+    saveRefreshToken(
+      user.id,
+      tokens.refreshToken,
+      newExpiresAt.toISOString(),
+      deviceInfo.fingerprint,
+      deviceInfo.type,
+      'refresh'
+    );
+    
     // レスポンス
     const response: RefreshTokenResponse = {
       accessToken: tokens.accessToken,
