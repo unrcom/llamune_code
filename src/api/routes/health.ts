@@ -51,7 +51,7 @@ router.get('/memory-test', async (req: Request, res: Response) => {
     const result = {
       status: passed ? 'ok' : 'error',
       model: model,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
       ollama_pid: await getOllamaProcessId(),
       test_result: {
         passed: passed,
@@ -69,7 +69,7 @@ router.get('/memory-test', async (req: Request, res: Response) => {
     const result = {
       status: 'error',
       model: model,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
       error: error instanceof Error ? error.message : 'Unknown error'
     };
     
