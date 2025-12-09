@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Message } from '../../types';
 
@@ -9,7 +10,14 @@ interface MessageListProps {
 }
 
 export function MessageList({ messages, streamingContent, onRetry, isStreaming }: MessageListProps) {
-// userとassistantのメッセージのみをフィルター
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // メッセージが追加されたら自動スクロール
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, streamingContent]);
+
+  // userとassistantのメッセージのみをフィルター
   const displayMessages = messages.filter((message) => message.role === 'user' || message.role === 'assistant');
   
   // 最後のアシスタントメッセージのインデックスを取得（フィルター後）
@@ -85,6 +93,9 @@ export function MessageList({ messages, streamingContent, onRetry, isStreaming }
           </div>
         </div>
       )}
+
+      {/* 自動スクロール用の要素 */}
+      <div ref={messagesEndRef} />
     </div>
   );
 }

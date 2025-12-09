@@ -6,13 +6,31 @@ import { MessageInput } from './MessageInput';
 import { RetryModal } from './RetryModal';
 import { RetryConfirmation } from './RetryConfirmation';
 import { UserMenu } from '../Auth/UserMenu';
-import { RepositorySelector } from '../Repository/RepositorySelector';
 
 export function ChatWindow() {
-  const { messages, currentModel, currentPresetId, currentDomainPromptId, isProfessionalMode, models, presets, error, isRetryPending, setCurrentModel, acceptRetry, rejectRetry, setMobileView } = useChatStore();
+  const { 
+    messages, 
+    currentModel, 
+    currentPresetId, 
+    currentDomainPromptId, 
+    currentRepositoryPath, 
+    currentBranch, 
+    isProfessionalMode, 
+    models, 
+    presets, 
+    error, 
+    isRetryPending, 
+    setCurrentModel, 
+    setCurrentBranch, 
+    acceptRetry, 
+    rejectRetry, 
+    setMobileView 
+  } = useChatStore();
+  
   const { sendMessage, retryMessage, streamingContent, isStreaming } = useChat();
   const [isRetryModalOpen, setIsRetryModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [branches, setBranches] = useState<string[]>([]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -22,6 +40,33 @@ export function ChatWindow() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // リポジトリが選択されたらブランチ一覧を取得
+  useEffect(() => {
+    if (!currentRepositoryPath) {
+      setBranches([]);
+      return;
+    }
+
+    const fetchBranches = async () => {
+      try {
+        const response = await fetch(`/api/git-repos/branches?path=${encodeURIComponent(currentRepositoryPath)}`);
+        if (response.ok) {
+          const data = await response.json();
+          setBranches(data.branches || []);
+          
+          // 現在のブランチが未設定なら、ブランチ一覧の最初のブランチを設定
+          if (!currentBranch && data.branches.length > 0) {
+            setCurrentBranch(data.branches[0]);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch branches:', error);
+      }
+    };
+
+    fetchBranches();
+  }, [currentRepositoryPath, currentBranch, setCurrentBranch]);
 
   const handleBackToList = () => {
     setMobileView('list');
@@ -48,22 +93,57 @@ export function ChatWindow() {
                 </svg>
               </button>
             )}
-            {models.length > 0 && (
-              <select
-                value={currentModel}
-                onChange={(e) => setCurrentModel(e.target.value)}
-                disabled={isStreaming || messages.length > 0}
-                className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={messages.length > 0 ? "モデルを変更するには New Chat で新しい会話を開始してください" : ""}
-              >
-                {models.map((model) => (
-                  <option key={model.name} value={model.name}>
-                    {model.name}
-                  </option>
-                ))}
-              </select>
+            
+            {/* モデル選択 / 固定表示 */}
+            {currentRepositoryPath ? (
+              /* リポジトリ選択時: モデル固定 */
+              <div className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                llama3.1:8b
+              </div>
+            ) : (
+              /* リポジトリなし: モデル選択可能 */
+              models.length > 0 && (
+                <select
+                  value={currentModel}
+                  onChange={(e) => setCurrentModel(e.target.value)}
+                  disabled={isStreaming || messages.length > 0}
+                  className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={messages.length > 0 ? "モデルを変更するには New Chat で新しい会話を開始してください" : ""}
+                >
+                  {models.map((model) => (
+                    <option key={model.name} value={model.name}>
+                      {model.name}
+                    </option>
+                  ))}
+                </select>
+              )
             )}
-            {isProfessionalMode && <RepositorySelector />}
+            
+            {currentRepositoryPath && (
+              <>
+                {/* リポジトリ表示（固定）*/}
+                <div className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                  📁 {currentRepositoryPath.split('/').pop()}
+                </div>
+                
+                {/* ブランチ選択 */}
+                {branches.length > 0 && (
+                  <select
+                    value={currentBranch || ''}
+                    onChange={(e) => setCurrentBranch(e.target.value)}
+                    disabled={messages.length > 0}
+                    className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-gray-800"
+                    title={messages.length > 0 ? "ブランチを変更するには新しいチャットを開始してください" : ""}
+                  >
+                    {branches.map((branch) => (
+                      <option key={branch} value={branch}>
+                        🌿 {branch}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </>
+            )}
           </div>
           <UserMenu />
         </div>

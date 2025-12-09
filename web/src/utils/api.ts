@@ -63,7 +63,8 @@ async function refreshAccessToken(): Promise<boolean> {
     useAuthStore.getState().updateTokens({
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
-    });    return true;
+    });
+    return true;
   } catch (error) {
     console.error('Failed to refresh token:', error);
     return false;
