@@ -13,8 +13,6 @@ export interface Session {
   message_count: number;
   preview: string;
   title: string | null;
-  repository_path: string | null;
-  current_branch: string | null;
 }
 
 // チャットパラメータ型
@@ -106,7 +104,6 @@ export interface SendMessageParams {
   presetId?: number;
   history?: Message[];
   domainPromptId?: number; // ドメイン特化モード用
-  repositoryPath?: string; // リポジトリツール呼び出し用
 }
 
 // APIレスポンス型
@@ -166,21 +163,4 @@ export interface AuthTokens {
 export interface RefreshTokenResponse {
   accessToken: string;
   refreshToken: string;
-}
-
-// リポジトリ型
-export interface Repository {
-  id: number;
-  user_id: number;
-  name: string;
-  local_path: string;
-  description: string | null;
-  default_branch: string;
-  primary_language: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface RepositoriesResponse {
-  repositories: Repository[];
 }

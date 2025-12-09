@@ -5,14 +5,11 @@ import { ModelManager } from './components/Models/ModelManager';
 import { Login } from './components/Auth/Login';
 import { useChatStore } from './store/chatStore';
 import { useAuthStore } from './store/authStore';
-import { fetchModels, fetchPresets, fetchGitRepositories, getCurrentUser } from './utils/api';
+import { fetchModels, fetchPresets, getCurrentUser } from './utils/api';
 
 function App() {
   const setModels = useChatStore((state) => state.setModels);
   const setPresets = useChatStore((state) => state.setPresets);
-  const setRepositories = useChatStore((state) => state.setRepositories);
-  const currentRepositoryPath = useChatStore((state) => state.currentRepositoryPath);
-  const setCurrentBranch = useChatStore((state) => state.setCurrentBranch);
   const mobileView = useChatStore((state) => state.mobileView);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const clearAuth = useAuthStore((state) => state.clearAuth);
@@ -67,96 +64,9 @@ function App() {
       }
     };
 
-    // リポジトリ一覧を取得（ローカルgitリポジトリをスキャン）
-    const loadRepositories = async () => {
-      try {
-        // セッションストレージからキャッシュを確認
-        const cached = sessionStorage.getItem('gitRepositories');
-        if (cached) {
-          const repositories = JSON.parse(cached);
-          setRepositories(repositories);
-          return;
-        }
-
-        // キャッシュがない場合はスキャン
-        const { repositories } = await fetchGitRepositories();
-
-        // Repository型に変換（idとuser_idは仮の値）
-        const repoList = repositories.map((repo, index) => ({
-          id: index + 1,
-          user_id: 1,
-          name: repo.name,
-          local_path: repo.path,
-          description: null,
-          default_branch: 'main',
-          primary_language: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }));
-
-        // セッションストレージにキャッシュ
-        sessionStorage.setItem('gitRepositories', JSON.stringify(repoList));
-
-        setRepositories(repoList);
-      } catch (error) {
-        console.error('Failed to load repositories:', error);
-      }
-    };
-
     loadModels();
     loadPresets();
-    loadRepositories();
-  }, [isAuthenticated, isValidating, setModels, setPresets, setRepositories]);
-
-  // リポジトリが変更されたらブランチ一覧を取得してカレントブランチを設定
-  useEffect(() => {
-    console.log('[App.tsx] Repository changed:', currentRepositoryPath);
-
-    if (!currentRepositoryPath || !isAuthenticated) {
-      return;
-    }
-
-    const fetchAndSetCurrentBranch = async () => {
-      try {
-        console.log('[App.tsx] Fetching branches...'); 
-
-        const authStore = await import('./store/authStore');
-        const tokens = authStore.useAuthStore.getState().tokens;
-        
-        if (!tokens?.accessToken) {
-          return;
-        }
-
-        const response = await fetch(
-          `/api/git-repos/branches?path=${encodeURIComponent(currentRepositoryPath)}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${tokens.accessToken}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch branches');
-        }
-
-        const data = await response.json();
-        const localBranches = data.branches.filter((b: any) => !b.remote);
-        
-        // カレントブランチを見つけて設定
-        const currentBranch = localBranches.find((b: any) => b.current);
-        if (currentBranch) {
-          console.log('[App.tsx] Setting branch:', currentBranch.name);
-          
-          setCurrentBranch(currentBranch.name);
-        }
-      } catch (error) {
-        console.error('Failed to fetch and set current branch:', error);
-      }
-    };
-
-    fetchAndSetCurrentBranch();
-  }, [currentRepositoryPath, isAuthenticated, setCurrentBranch]);
+  }, [isAuthenticated, isValidating, setModels, setPresets]);
 
   useEffect(() => {
     // モバイル判定

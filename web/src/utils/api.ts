@@ -12,8 +12,6 @@ import type {
   User,
   DomainMode,
   DomainPrompt,
-  RepositoriesResponse,
-  Repository,
 } from '../types';
 import { useAuthStore } from '../store/authStore';
 
@@ -338,17 +336,6 @@ export async function fetchDomainPrompts(domainId: number): Promise<{ prompts: D
 
   if (!response.ok) {
     throw new Error('Failed to fetch domain prompts');
-  }
-
-  return response.json();
-}
-
-// Gitリポジトリをスキャン（ローカルファイルシステムから自動検出）
-export async function fetchGitRepositories(): Promise<{ repositories: Array<{ name: string; path: string }> }> {
-  const response = await authenticatedFetch(`${API_BASE_URL}/git-repos`);
-
-  if (!response.ok) {
-    throw new Error('Failed to scan git repositories');
   }
 
   return response.json();
