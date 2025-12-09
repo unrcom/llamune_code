@@ -3,6 +3,7 @@
  */
 
 import type { ChatMessage, ChatParameters } from '../utils/ollama.js';
+import { getRecommendedNumCtx } from '../utils/ollama.js';
 import {
   chatWithModel,
   listModels,
@@ -108,8 +109,15 @@ export class ChatSession {
         model: this.model,
         messages: this.messages,
         stream: true,
-        options: this.parameters,
+        options: {
+          ...this.parameters,
+          num_ctx: this.parameters?.num_ctx ?? getRecommendedNumCtx(this.model),
+        },
       };
+
+      // ===== 修正版 =====
+      console.log('[DEBUG] Ollama API Request:', JSON.stringify(request, null, 2));
+      // ==================================
 
       // リポジトリが紐付いている場合はツールを含める
       if (this.repositoryPath) {
@@ -337,7 +345,10 @@ export class ChatSession {
       model: modelName,
       messages: this.messages,
       stream: true,
-      options: parameters,
+      options: {
+        ...parameters,
+        num_ctx: parameters?.num_ctx ?? getRecommendedNumCtx(modelName),
+      },
     };
 
     try {

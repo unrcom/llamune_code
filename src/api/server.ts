@@ -14,6 +14,7 @@ import chatRouter from './routes/chat.js';
 import authRouter from './routes/auth.js';
 import domainsRouter from './routes/domains.js';
 import gitReposRouter from './routes/git-repos.js';
+import healthRouter from './routes/health.js';
 
 // package.json を読み込む
 const __filename = fileURLToPath(import.meta.url);
@@ -123,6 +124,7 @@ app.get('/api', (req, res) => {
 
 // 認証ルート（認証不要）
 app.use('/api/auth', authRouter);
+app.use('/api/health', healthRouter);
 
 // JWT認証ミドルウェアを他のAPIエンドポイントに適用
 app.use('/api', authenticateJWT);

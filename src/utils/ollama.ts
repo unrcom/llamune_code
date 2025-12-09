@@ -386,3 +386,24 @@ export async function chatWithModel(
     throw new OllamaError('不明なエラーが発生しました');
   }
 }
+
+/**
+ * モデル名から推奨 num_ctx を取得
+ */
+export function getRecommendedNumCtx(modelName: string): number {
+  // デフォルト値
+  const DEFAULT_NUM_CTX = 8192;
+  
+  // モデル名の正規化（タグを除去）
+  const baseName = modelName.split(':')[0];
+  
+  // 特定モデルの推奨値マッピング（実測値のみ）
+  const contextMap: Record<string, number> = {
+    'gpt-oss': 131072,        // 確認済み: 131072
+    'gemma2': 8192,           // 確認済み: 8192
+    'qwen2.5': 32768,         // 確認済み: 32768
+  };
+  
+  // マッピングに存在すればその値、なければデフォルト
+  return contextMap[baseName] ?? DEFAULT_NUM_CTX;
+}
