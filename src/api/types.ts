@@ -41,8 +41,6 @@ export interface ChatMessagesRequest {
   presetId?: number;
   history?: ChatMessage[];
   domainPromptId?: number; // ドメイン特化モード用
-  repositoryPath?: string; // リポジトリパス（ツール呼び出し用）
-  workingBranch?: string; // 作業ブランチ
 }
 
 /**
@@ -83,8 +81,6 @@ export interface SessionsResponse {
     message_count: number;
     preview: string | null;
     title: string | null;
-    repository_path: string | null;
-    current_branch: string | null;
   }>;
 }
 
@@ -96,8 +92,6 @@ export interface SessionDetailResponse {
     id: number;
     model: string;
     created_at: string;
-    repository_path?: string | null;
-    current_branch?: string | null;
   };
   messages: ChatMessage[];
 }

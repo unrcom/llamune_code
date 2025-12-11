@@ -6,7 +6,7 @@ import type { Session } from '../../types';
 import { DomainSelector } from './DomainSelector';
 
 export function SessionList() {
-  const { currentSessionId, setCurrentSession, setMessages, resetChat, setSessions, setMobileView, setCurrentDomainPromptId, setIsProfessionalMode } = useChatStore();
+  const { currentSessionId, setCurrentSession, setCurrentModel, setMessages, resetChat, setSessions, setMobileView, setCurrentDomainPromptId, setIsProfessionalMode } = useChatStore();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [sessions, setLocalSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(false);
@@ -46,6 +46,7 @@ export function SessionList() {
       const response = await fetchSession(sessionId);
       setCurrentSession(sessionId);
       setMessages(response.messages);
+      setCurrentModel(response.session.model);
       setMobileView('chat'); // モバイルでチャット画面に切り替え
     } catch (error) {
       console.error('Failed to load session:', error);

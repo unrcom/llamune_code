@@ -24,8 +24,6 @@ export interface ChatSession {
   message_count: number;
   preview: string; // 最初のユーザーメッセージのプレビュー
   title: string | null; // セッションのタイトル
-  repository_path: string | null; // リポジトリパス
-  current_branch: string | null; // 現在のブランチ
 }
 
 /**
@@ -138,34 +136,10 @@ export function initDatabase(): Database.Database {
     db.exec('ALTER TABLE sessions ADD COLUMN title TEXT');
   }
 
-  // repository_pathカラムがなければ追加
-  const hasRepositoryPathColumn = tableInfo.some((col) => col.name === 'repository_path');
-  if (!hasRepositoryPathColumn) {
-    db.exec('ALTER TABLE sessions ADD COLUMN repository_path TEXT');
-  }
-
-  // current_branchカラムがなければ追加
-  const hasCurrentBranchColumn = tableInfo.some((col) => col.name === 'current_branch');
-  if (!hasCurrentBranchColumn) {
-    db.exec('ALTER TABLE sessions ADD COLUMN current_branch TEXT');
-  }
-
   // user_idカラムがなければ追加
   const hasUserIdColumn = tableInfo.some((col) => col.name === 'user_id');
   if (!hasUserIdColumn) {
     db.exec('ALTER TABLE sessions ADD COLUMN user_id INTEGER');
-  }
-
-  // repository_idカラムがなければ追加
-  const hasRepositoryIdColumn = tableInfo.some((col) => col.name === 'repository_id');
-  if (!hasRepositoryIdColumn) {
-    db.exec('ALTER TABLE sessions ADD COLUMN repository_id INTEGER');
-  }
-
-  // working_branchカラムがなければ追加
-  const hasWorkingBranchColumn = tableInfo.some((col) => col.name === 'working_branch');
-  if (!hasWorkingBranchColumn) {
-    db.exec('ALTER TABLE sessions ADD COLUMN working_branch TEXT');
   }
 
   // メッセージテーブル
@@ -203,21 +177,18 @@ export function initDatabase(): Database.Database {
  * 新しいセッションを作成
  */
 export function createSession(
-  model: string,
-  repositoryPath?: string | null,
-  currentBranch?: string | null
+  model: string
 ): number {
   const db = initDatabase();
   const now = new Date().toISOString();
 
   const result = db
-    .prepare('INSERT INTO sessions (model, repository_path, current_branch, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
-    .run(model, repositoryPath || null, currentBranch || null, now, now);
+    .prepare('INSERT INTO sessions (model, created_at, updated_at) VALUES (?, ?, ?)')
+    .run(model, now, now);
 
   db.close();
   return result.lastInsertRowid as number;
 }
-
 /**
  * メッセージを保存
  */
@@ -259,17 +230,15 @@ export function saveMessage(
 export function saveConversation(
   model: string,
   messages: ChatMessage[],
-  userId?: number,
-  repositoryPath?: string | null,
-  currentBranch?: string | null
+  userId?: number
 ): number {
   const db = initDatabase();
   const now = new Date().toISOString();
 
   // セッションを作成
   const sessionResult = db
-    .prepare('INSERT INTO sessions (model, user_id, repository_path, current_branch, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(model, userId || null, repositoryPath || null, currentBranch || null, now, now);
+    .prepare('INSERT INTO sessions (model, user_id, created_at, updated_at) VALUES (?, ?, ?, ?)')
+    .run(model, userId || null, now, now);
 
   const sessionId = sessionResult.lastInsertRowid as number;
 
@@ -325,8 +294,6 @@ export function listSessions(limit = 200, userId?: number): ChatSession[] {
         s.created_at,
         s.updated_at,
         s.title,
-        s.repository_path,
-        s.current_branch,
         COUNT(m.id) as message_count,
         (
           SELECT content
@@ -386,7 +353,7 @@ export function updateSessionTitle(sessionId: number, title: string, userId?: nu
  * @param userId - ユーザーID（指定された場合、所有者チェックを行う）
  */
 export function getSession(sessionId: number, userId?: number): {
-  session: ChatSession & { user_id?: number; repository_id?: number; working_branch?: string };
+  session: ChatSession & { user_id?: number };
   messages: ChatMessage[];
 } | null {
   const db = initDatabase();
@@ -398,15 +365,11 @@ export function getSession(sessionId: number, userId?: number): {
       SELECT
         s.id,
         s.model,
-        s.user_id,
-        s.repository_id,
-        s.working_branch,
-        s.repository_path,
-        s.current_branch,
         s.created_at,
         s.updated_at,
         s.title,
         COUNT(m.id) as message_count,
+        s.user_id,
         (
           SELECT content
           FROM messages
@@ -420,7 +383,7 @@ export function getSession(sessionId: number, userId?: number): {
       GROUP BY s.id
     `
     )
-    .get(sessionId) as (ChatSession & { user_id?: number; repository_id?: number; working_branch?: string }) | undefined;
+    .get(sessionId) as (ChatSession & { user_id?: number }) | undefined;
 
   if (!session) {
     db.close();
@@ -711,8 +674,6 @@ export function getAllSessions(userId?: number): ChatSession[] {
       s.created_at,
       s.updated_at,
       s.title,
-      s.repository_path,
-      s.current_branch,
       COUNT(m.id) as message_count,
       (SELECT content FROM messages WHERE session_id = s.id AND role = 'user' AND deleted_at IS NULL ORDER BY id ASC LIMIT 1) as preview
     FROM sessions s
@@ -1142,195 +1103,3 @@ export function getDefaultDomainPrompt(domainId: number): DomainPrompt | null {
   }
 }
 
-// ========================================
-// リポジトリ管理
-// ========================================
-
-/**
- * ユーザーリポジトリの型定義
- */
-export interface UserRepository {
-  id: number;
-  user_id: number;
-  name: string;
-  local_path: string;
-  description: string | null;
-  default_branch: string;
-  primary_language: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-/**
- * リポジトリを作成
- */
-export function createRepository(
-  userId: number,
-  name: string,
-  localPath: string,
-  description?: string,
-  defaultBranch: string = 'main',
-  primaryLanguage?: string
-): number {
-  const db = initDatabase();
-  const now = new Date().toISOString();
-
-  try {
-    const result = db
-      .prepare(`
-        INSERT INTO user_repositories (
-          user_id, name, local_path, description, default_branch, primary_language, created_at, updated_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `)
-      .run(userId, name, localPath, description || null, defaultBranch, primaryLanguage || null, now, now);
-
-    db.close();
-    return result.lastInsertRowid as number;
-  } catch (error) {
-    db.close();
-    throw error;
-  }
-}
-
-/**
- * ユーザーのリポジトリ一覧を取得
- */
-export function getUserRepositories(userId: number): UserRepository[] {
-  const db = initDatabase();
-
-  try {
-    const repos = db
-      .prepare('SELECT * FROM user_repositories WHERE user_id = ? ORDER BY created_at DESC')
-      .all(userId) as UserRepository[];
-
-    db.close();
-    return repos;
-  } catch (error) {
-    db.close();
-    throw error;
-  }
-}
-
-/**
- * リポジトリをIDで取得
- */
-export function getRepositoryById(id: number): UserRepository | null {
-  const db = initDatabase();
-
-  try {
-    const repo = db
-      .prepare('SELECT * FROM user_repositories WHERE id = ?')
-      .get(id) as UserRepository | undefined;
-
-    db.close();
-    return repo || null;
-  } catch (error) {
-    db.close();
-    throw error;
-  }
-}
-
-/**
- * リポジトリを更新
- */
-export function updateRepository(
-  id: number,
-  updates: {
-    name?: string;
-    description?: string;
-    default_branch?: string;
-    primary_language?: string;
-  }
-): boolean {
-  const db = initDatabase();
-  const now = new Date().toISOString();
-
-  try {
-    const fields: string[] = [];
-    const values: any[] = [];
-
-    if (updates.name !== undefined) {
-      fields.push('name = ?');
-      values.push(updates.name);
-    }
-    if (updates.description !== undefined) {
-      fields.push('description = ?');
-      values.push(updates.description);
-    }
-    if (updates.default_branch !== undefined) {
-      fields.push('default_branch = ?');
-      values.push(updates.default_branch);
-    }
-    if (updates.primary_language !== undefined) {
-      fields.push('primary_language = ?');
-      values.push(updates.primary_language);
-    }
-
-    if (fields.length === 0) {
-      db.close();
-      return false;
-    }
-
-    fields.push('updated_at = ?');
-    values.push(now);
-    values.push(id);
-
-    const result = db
-      .prepare(`UPDATE user_repositories SET ${fields.join(', ')} WHERE id = ?`)
-      .run(...values);
-
-    db.close();
-    return result.changes > 0;
-  } catch (error) {
-    db.close();
-    throw error;
-  }
-}
-
-/**
- * リポジトリを削除
- */
-export function deleteRepository(id: number): boolean {
-  const db = initDatabase();
-
-  try {
-    const result = db
-      .prepare('DELETE FROM user_repositories WHERE id = ?')
-      .run(id);
-
-    db.close();
-    return result.changes > 0;
-  } catch (error) {
-    db.close();
-    throw error;
-  }
-}
-
-/**
- * セッションのリポジトリを設定
- */
-export function setSessionRepository(
-  sessionId: number,
-  repositoryId: number | null,
-  workingBranch?: string
-): boolean {
-  const db = initDatabase();
-  const now = new Date().toISOString();
-
-  try {
-    const result = db
-      .prepare(`
-        UPDATE sessions
-        SET repository_id = ?, working_branch = ?, updated_at = ?
-        WHERE id = ?
-      `)
-      .run(repositoryId, workingBranch || null, now, sessionId);
-
-    db.close();
-    return result.changes > 0;
-  } catch (error) {
-    db.close();
-    throw error;
-  }
-}

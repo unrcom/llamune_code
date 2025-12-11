@@ -26,7 +26,7 @@ const router = Router();
  */
 router.post('/messages', async (req: Request, res: Response) => {
   try {
-    const { sessionId, content, modelName, presetId, history, domainPromptId, repositoryPath, workingBranch } = req.body as ChatMessagesRequest;
+    const { sessionId, content, modelName, presetId, history, domainPromptId } = req.body as ChatMessagesRequest;
 
     if (!content || content.trim() === '') {
       const error: ApiError = {
@@ -72,12 +72,8 @@ router.post('/messages', async (req: Request, res: Response) => {
       }
       session = existing;
 
-      // リポジトリが指定されている場合は設定
-      if (repositoryPath) {
-        session.setRepository(repositoryPath, workingBranch);
-      }
     } else {
-      // 新規セッション（user_idとsystemPromptを設定）
+      // リポジトリが指定されている場合は設定
       const model = modelName || 'gemma2:9b';
       session = new ChatSession(
         model,
@@ -86,8 +82,6 @@ router.post('/messages', async (req: Request, res: Response) => {
         undefined,
         userId,
         systemPrompt,
-        repositoryPath,
-        workingBranch
       );
     }
 
@@ -250,8 +244,6 @@ router.get('/sessions', (req: Request, res: Response) => {
         message_count: s.message_count,
         preview: s.preview,
         title: s.title,
-        repository_path: s.repository_path,
-        current_branch: s.current_branch,
       })),
     };
     res.json(response);
