@@ -35,7 +35,7 @@ function getAuthHeaders(): HeadersInit {
 }
 
 // トークンリフレッシュ処理
-async function refreshAccessToken(): Promise<boolean> {
+export async function refreshAccessToken(): Promise<boolean> {
   const tokens = useAuthStore.getState().tokens;
   if (!tokens?.refreshToken) {
     return false;
@@ -196,10 +196,12 @@ export async function retryLastMessage(
   sessionId: number | null,
   modelName: string,
   presetId?: number | null,
-  history?: Message[]
+  history?: Message[],
+  signal?: AbortSignal
 ): Promise<Response> {
   const response = await authenticatedFetch(`${API_BASE_URL}/chat/retry`, {
     method: 'POST',
+    signal,
     headers: {
       'Content-Type': 'application/json',
     },

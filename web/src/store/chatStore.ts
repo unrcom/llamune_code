@@ -28,6 +28,8 @@ interface ChatState {
   isRetryPending: boolean;
   retryOriginalMessage: Message | null;
   mobileView: 'list' | 'chat' | 'models';
+  cancelStreaming: (() => void) | null;
+  inputValue: string;
 
   // アクション
   setCurrentSession: (sessionId: number | null) => void;
@@ -38,6 +40,7 @@ interface ChatState {
   addMessage: (message: Message) => void;
   setMessages: (messages: Message[]) => void;
   removeLastAssistantMessage: () => Message | null;
+  removeLastUserMessage: () => Message | null;
   setSessions: (sessions: Session[]) => void;
   setModels: (models: Model[]) => void;
   setPresets: (presets: ParameterPreset[]) => void;
@@ -49,6 +52,8 @@ interface ChatState {
   rejectRetry: () => void;
   resetChat: () => void;
   setMobileView: (view: 'list' | 'chat' | 'models') => void;
+  setCancelStreaming: (fn: (() => void) | null) => void;
+  setInputValue: (value: string) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -74,6 +79,8 @@ export const useChatStore = create<ChatState>((set) => ({
   isRetryPending: false,
   retryOriginalMessage: null,
   mobileView: 'list',
+  cancelStreaming: null,
+  inputValue: '',
 
   // アクション
   setCurrentSession: (sessionId) => set({ currentSessionId: sessionId }),
@@ -92,6 +99,22 @@ export const useChatStore = create<ChatState>((set) => ({
       const messages = [...state.messages];
       for (let i = messages.length - 1; i >= 0; i--) {
         if (messages[i].role === 'assistant') {
+          removedMessage = messages[i];
+          messages.splice(i, 1);
+          break;
+        }
+      }
+      return { messages };
+    });
+    return removedMessage;
+  },
+  removeLastUserMessage: () => {
+    let removedMessage: Message | null = null;
+    set((state) => {
+      // 最後のユーザーメッセージを削除
+      const messages = [...state.messages];
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].role === 'user') {
           removedMessage = messages[i];
           messages.splice(i, 1);
           break;
@@ -142,4 +165,6 @@ export const useChatStore = create<ChatState>((set) => ({
     retryOriginalMessage: null,
   }),
   setMobileView: (view) => set({ mobileView: view }),
+  setCancelStreaming: (fn) => set({ cancelStreaming: fn }),
+  setInputValue: (value) => set({ inputValue: value }),
 }));

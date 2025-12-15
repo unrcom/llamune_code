@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Message } from '../../types';
 
@@ -11,11 +11,37 @@ interface MessageListProps {
 
 export function MessageList({ messages, streamingContent, onRetry, isStreaming }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const lastScrollTop = useRef(0);
 
-  // メッセージが追加されたら自動スクロール
+  // スクロール位置を監視して、ユーザーが最下部にいるかチェック
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+    const scrollDirection = scrollTop > lastScrollTop.current ? 'down' : 'up';
+    lastScrollTop.current = scrollTop;
+
+    // 最下部からの距離
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+    // ユーザーが上スクロールした場合は自動スクロールを無効化
+    if (scrollDirection === 'up' && distanceFromBottom > 50) {
+      setShouldAutoScroll(false);
+    }
+    // ユーザーが最下部（50px以内）に戻った場合のみ自動スクロールを再開
+    else if (distanceFromBottom < 50) {
+      setShouldAutoScroll(true);
+    }
+  };
+
+  // メッセージが追加されたら、最下部にいる場合のみ自動スクロール
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, streamingContent]);
+    if (shouldAutoScroll && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, streamingContent, shouldAutoScroll]);
 
   // userとassistantのメッセージのみをフィルター
   const displayMessages = messages.filter((message) => message.role === 'user' || message.role === 'assistant');
@@ -27,8 +53,24 @@ export function MessageList({ messages, streamingContent, onRetry, isStreaming }
     }
     return acc;
   }, -1);
+
+  // 最後のユーザーメッセージのインデックスを取得
+  const lastUserIndex = displayMessages.reduceRight((acc, msg, idx) => {
+    if (acc === -1 && msg.role === 'user') {
+      return idx;
+    }
+    return acc;
+  }, -1);
+
+  // 最後のメッセージがユーザーメッセージで、アシスタントメッセージがない場合
+  const shouldShowRetryOnLastUser = lastUserIndex > lastAssistantIndex && lastUserIndex === displayMessages.length - 1;
+
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+    <div 
+      ref={scrollContainerRef}
+      onScroll={handleScroll}
+      className="flex-1 overflow-y-auto px-4 py-6 space-y-6"
+    >
       {displayMessages.map((message, index) => {
         const isLastAssistant = message.role === 'assistant' && index === lastAssistantIndex;
 
