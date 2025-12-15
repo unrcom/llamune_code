@@ -24,6 +24,7 @@ export interface ChatSession {
   message_count: number;
   preview: string; // 最初のユーザーメッセージのプレビュー
   title: string | null; // セッションのタイトル
+  project_path?: string | null; // プロジェクトディレクトリパス
 }
 
 /**
@@ -240,15 +241,16 @@ export function saveMessage(
 export function saveConversation(
   model: string,
   messages: ChatMessage[],
-  userId?: number
+  userId?: number,
+  projectPath?: string
 ): number {
   const db = initDatabase();
   const now = new Date().toISOString();
 
   // セッションを作成
   const sessionResult = db
-    .prepare('INSERT INTO sessions (model, user_id, created_at, updated_at) VALUES (?, ?, ?, ?)')
-    .run(model, userId || null, now, now);
+    .prepare('INSERT INTO sessions (model, user_id, project_path, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
+    .run(model, userId || null, projectPath || null, now, now);
 
   const sessionId = sessionResult.lastInsertRowid as number;
 
@@ -378,6 +380,7 @@ export function getSession(sessionId: number, userId?: number): {
         s.created_at,
         s.updated_at,
         s.title,
+        s.project_path,
         COUNT(m.id) as message_count,
         s.user_id,
         (
@@ -684,6 +687,7 @@ export function getAllSessions(userId?: number): ChatSession[] {
       s.created_at,
       s.updated_at,
       s.title,
+      s.project_path,
       COUNT(m.id) as message_count,
       (SELECT content FROM messages WHERE session_id = s.id AND role = 'user' AND deleted_at IS NULL ORDER BY id ASC LIMIT 1) as preview
     FROM sessions s

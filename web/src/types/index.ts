@@ -13,6 +13,7 @@ export interface Session {
   message_count: number;
   preview: string;
   title: string | null;
+  project_path?: string | null;
 }
 
 // チャットパラメータ型
@@ -126,6 +127,7 @@ export interface SessionDetailResponse {
     id: number;
     model: string;
     created_at: string;
+    project_path?: string | null;
   };
   messages: Message[];
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { Message } from '../../types';
 
 interface MessageListProps {
@@ -43,8 +44,13 @@ export function MessageList({ messages, streamingContent, onRetry, isStreaming }
     }
   }, [messages, streamingContent, shouldAutoScroll]);
 
-  // userとassistantのメッセージのみをフィルター
-  const displayMessages = messages.filter((message) => message.role === 'user' || message.role === 'assistant');
+  // userとassistantのメッセージのみをフィルター（空のメッセージも除外）
+  const displayMessages = messages.filter(
+    (message) => 
+      (message.role === 'user' || message.role === 'assistant') && 
+      message.content && 
+      message.content.trim() !== ''
+  );
   
   // 最後のアシスタントメッセージのインデックスを取得（フィルター後）
   const lastAssistantIndex = displayMessages.reduceRight((acc, msg, idx) => {
@@ -92,8 +98,8 @@ export function MessageList({ messages, streamingContent, onRetry, isStreaming }
                     {message.model}
                   </div>
                 )}
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                <div className="prose prose-sm dark:prose-invert max-w-none overflow-x-auto">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
                 </div>
               </div>
               {isLastAssistant && onRetry && (
@@ -126,8 +132,8 @@ export function MessageList({ messages, streamingContent, onRetry, isStreaming }
       {streamingContent && (
         <div className="flex justify-start">
           <div className="max-w-3xl rounded-lg px-4 py-3 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              <ReactMarkdown>{streamingContent}</ReactMarkdown>
+            <div className="prose prose-sm dark:prose-invert max-w-none overflow-x-auto">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingContent}</ReactMarkdown>
             </div>
             <div className="mt-2 flex items-center text-xs text-gray-500">
               <div className="animate-pulse">▋</div>

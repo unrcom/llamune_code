@@ -26,7 +26,7 @@ const router = Router();
  */
 router.post('/messages', async (req: Request, res: Response) => {
   try {
-    const { sessionId, content, modelName, presetId, history, domainPromptId } = req.body as ChatMessagesRequest;
+    const { sessionId, content, modelName, presetId, history, domainPromptId, projectPath } = req.body as ChatMessagesRequest;
 
     if (!content || content.trim() === '') {
       const error: ApiError = {
@@ -73,7 +73,7 @@ router.post('/messages', async (req: Request, res: Response) => {
       session = existing;
 
     } else {
-      // リポジトリが指定されている場合は設定
+      // 新規セッション作成
       const model = modelName || 'gemma2:9b';
       session = new ChatSession(
         model,
@@ -82,6 +82,7 @@ router.post('/messages', async (req: Request, res: Response) => {
         undefined,
         userId,
         systemPrompt,
+        projectPath,
       );
     }
 
@@ -244,6 +245,7 @@ router.get('/sessions', (req: Request, res: Response) => {
         message_count: s.message_count,
         preview: s.preview,
         title: s.title,
+        project_path: s.project_path,
       })),
     };
     res.json(response);

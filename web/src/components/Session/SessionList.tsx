@@ -6,7 +6,7 @@ import type { Session } from '../../types';
 import { DomainSelector } from './DomainSelector';
 
 export function SessionList() {
-  const { currentSessionId, setCurrentSession, setCurrentModel, setMessages, resetChat, setSessions, setMobileView, setCurrentDomainPromptId, setIsProfessionalMode } = useChatStore();
+  const { currentSessionId, setCurrentSession, setCurrentModel, setMessages, resetChat, setSessions, setMobileView, setCurrentDomainPromptId, setIsProfessionalMode, setProjectPath, messages } = useChatStore();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [sessions, setLocalSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(false);
@@ -16,6 +16,7 @@ export function SessionList() {
   const [showInfoId, setShowInfoId] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showDomainSelector, setShowDomainSelector] = useState(false);
+  const [projectPathInput, setProjectPathInput] = useState<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const sortedSessions = useMemo(() => {
@@ -47,6 +48,12 @@ export function SessionList() {
       setCurrentSession(sessionId);
       setMessages(response.messages);
       setCurrentModel(response.session.model);
+      
+      // プロジェクトパスを復元
+      const projectPath = response.session.project_path || '';
+      setProjectPathInput(projectPath);
+      setProjectPath(projectPath || null);
+      
       setMobileView('chat'); // モバイルでチャット画面に切り替え
     } catch (error) {
       console.error('Failed to load session:', error);
@@ -81,6 +88,7 @@ export function SessionList() {
   const handleDomainSelect = (domainPromptId: number | null, isProfessionalMode?: boolean) => {
     resetChat();
     setCurrentDomainPromptId(domainPromptId);
+    setProjectPath(projectPathInput || null);
     if (isProfessionalMode) {
       setIsProfessionalMode(true);
     }
@@ -164,6 +172,24 @@ export function SessionList() {
         >
           + 新しいチャット
         </button>
+        
+        {/* プロジェクトディレクトリ入力 */}
+        <div className="mt-3">
+          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1 flex items-center gap-1">
+            <span>📁</span>
+            <span>プロジェクトディレクトリ (オプション)</span>
+          </label>
+          <input
+            type="text"
+            value={projectPathInput}
+            onChange={(e) => setProjectPathInput(e.target.value)}
+            disabled={messages.length > 0}
+            placeholder="/path/to/project"
+            className="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            title={messages.length > 0 ? "チャット開始後は変更できません" : ""}
+          />
+        </div>
+        
         <button
           onClick={handleOpenModels}
           className="w-full mt-2 px-3 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors flex items-center justify-center gap-1"

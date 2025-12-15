@@ -41,6 +41,7 @@ export interface ChatMessagesRequest {
   presetId?: number;
   history?: ChatMessage[];
   domainPromptId?: number; // ドメイン特化モード用
+  projectPath?: string; // プロジェクトディレクトリパス
 }
 
 /**
@@ -81,6 +82,7 @@ export interface SessionsResponse {
     message_count: number;
     preview: string | null;
     title: string | null;
+    project_path?: string | null;
   }>;
 }
 
@@ -92,6 +94,7 @@ export interface SessionDetailResponse {
     id: number;
     model: string;
     created_at: string;
+    project_path?: string | null;
   };
   messages: ChatMessage[];
 }

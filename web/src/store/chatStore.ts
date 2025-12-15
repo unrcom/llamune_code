@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
 import type { Message, Session, ChatParameters, Model, ParameterPreset } from '../types';
 
 interface ChatState {
@@ -8,6 +9,7 @@ interface ChatState {
   currentPresetId: number | null;
   currentDomainPromptId: number | null; // ドメイン特化モード用
   isProfessionalMode: boolean; // あなたの本職を支援するモード（app-development）かどうか
+  projectPath: string | null; // プロジェクトディレクトリパス
   messages: Message[];
 
   // セッション一覧
@@ -37,6 +39,7 @@ interface ChatState {
   setCurrentPresetId: (presetId: number | null) => void;
   setCurrentDomainPromptId: (domainPromptId: number | null) => void;
   setIsProfessionalMode: (isProfessional: boolean) => void;
+  setProjectPath: (projectPath: string | null) => void;
   addMessage: (message: Message) => void;
   setMessages: (messages: Message[]) => void;
   removeLastAssistantMessage: () => Message | null;
@@ -56,14 +59,17 @@ interface ChatState {
   setInputValue: (value: string) => void;
 }
 
-export const useChatStore = create<ChatState>((set) => ({
-  // 初期状態
-  currentSessionId: null,
-  currentModel: '',
-  currentPresetId: null,
-  currentDomainPromptId: null,
-  isProfessionalMode: false,
-  messages: [],
+export const useChatStore = create<ChatState>()(
+  devtools(
+    (set) => ({
+      // 初期状態
+      currentSessionId: null,
+      currentModel: '',
+      currentPresetId: null,
+      currentDomainPromptId: null,
+      isProfessionalMode: false,
+      projectPath: null,
+      messages: [],
   sessions: [],
   models: [],
   presets: [],
@@ -88,6 +94,7 @@ export const useChatStore = create<ChatState>((set) => ({
   setCurrentPresetId: (presetId) => set({ currentPresetId: presetId }),
   setCurrentDomainPromptId: (domainPromptId) => set({ currentDomainPromptId: domainPromptId }),
   setIsProfessionalMode: (isProfessional) => set({ isProfessionalMode: isProfessional }),
+  setProjectPath: (projectPath) => set({ projectPath: projectPath }),
   addMessage: (message) => set((state) => ({
     messages: [...state.messages, message]
   })),
@@ -159,6 +166,7 @@ export const useChatStore = create<ChatState>((set) => ({
     currentSessionId: null,
     currentDomainPromptId: null,
     isProfessionalMode: false,
+    projectPath: null,
     messages: [],
     error: null,
     isRetryPending: false,
@@ -167,4 +175,5 @@ export const useChatStore = create<ChatState>((set) => ({
   setMobileView: (view) => set({ mobileView: view }),
   setCancelStreaming: (fn) => set({ cancelStreaming: fn }),
   setInputValue: (value) => set({ inputValue: value }),
-}));
+}), { name: 'ChatStore' })
+);

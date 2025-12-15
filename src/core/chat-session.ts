@@ -18,6 +18,11 @@ import {
   updateSessionModel,
   getDefaultPrompt,
 } from '../utils/database.js';
+import {
+  projectTools,
+  generateFileTree,
+  executeToolCall,
+} from '../utils/project-tools.js';
 
 /**
  * チャットセッションクラス
@@ -30,6 +35,7 @@ export class ChatSession {
   private userId?: number;
   private systemPrompt?: string;
   private lastSavedMessageCount: number;
+  private projectPath?: string;
 
   constructor(
     model: string,
@@ -37,13 +43,15 @@ export class ChatSession {
     messages?: ChatMessage[],
     parameters?: ChatParameters,
     userId?: number,
-    systemPrompt?: string
+    systemPrompt?: string,
+    projectPath?: string
   ) {
     this.model = model;
     this.sessionId = sessionId || null;
     this.messages = messages || [];
     this.parameters = parameters;
     this.userId = userId;
+    this.projectPath = projectPath;
 
     // systemPromptが未指定の場合、DBからデフォルトプロンプトを取得
     if (!systemPrompt) {
@@ -58,6 +66,12 @@ export class ChatSession {
       }
     } else {
       this.systemPrompt = systemPrompt;
+    }
+
+    // プロジェクトパスが指定されている場合、ファイルツリーをシステムプロンプトに追加
+    if (this.projectPath) {
+      const fileTree = generateFileTree(this.projectPath);
+      this.systemPrompt += `\n\n## プロジェクト構造\n\nあなたは以下のプロジェクトディレクトリにアクセスできます：\n\`\`\`\n${fileTree}\n\`\`\`\n\nファイルを読み取る場合は read_file ツールを、ディレクトリ一覧を取得する場合は list_files ツールを使用してください。`;
     }
 
     // system promptが指定されていて、messagesが空またはsystem roleがない場合、先頭に追加
@@ -76,11 +90,13 @@ export class ChatSession {
    * メッセージを送信してストリーミングレスポンスを取得
    */
   async *sendMessage(content: string): AsyncGenerator<string, string, unknown> {
-    // ユーザーメッセージを追加
-    this.messages.push({
-      role: 'user',
-      content,
-    });
+    // ツール呼び出し後の再実行でない場合のみユーザーメッセージを追加
+    if (content && content.trim() !== '') {
+      this.messages.push({
+        role: 'user',
+        content,
+      });
+    }
 
     let fullResponse = '';
     const OLLAMA_BASE_URL = 'http://localhost:11434';
@@ -94,6 +110,11 @@ export class ChatSession {
         num_ctx: this.parameters?.num_ctx ?? getRecommendedNumCtx(this.model),
       },
     };
+
+    // プロジェクトパスが指定されている場合、ツールを有効化
+    if (this.projectPath) {
+      request.tools = projectTools;
+    }
 
     try {
       const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
@@ -116,6 +137,7 @@ export class ChatSession {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let assistantMessage = '';
+      let toolCalls: any[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -128,6 +150,11 @@ export class ChatSession {
           try {
             const data = JSON.parse(line);
 
+            // ツール呼び出しをチェック
+            if (data.message?.tool_calls) {
+              toolCalls = data.message.tool_calls;
+            }
+
             // コンテンツ処理
             if (data.message?.content) {
               assistantMessage += data.message.content;
@@ -137,11 +164,38 @@ export class ChatSession {
 
             // ストリーム完了チェック
             if (data.done) {
-              // アシスタントメッセージを追加
-              this.messages.push({
-                role: 'assistant',
-                content: assistantMessage,
-              });
+              // ツール呼び出しがある場合、実行して再度LLMを呼び出す
+              if (toolCalls.length > 0 && this.projectPath) {
+                // アシスタントメッセージ（ツール呼び出し含む）を追加
+                this.messages.push({
+                  role: 'assistant',
+                  content: assistantMessage,
+                  tool_calls: toolCalls,
+                } as any);
+
+                // ツールを実行
+                for (const toolCall of toolCalls) {
+                  const toolName = toolCall.function.name;
+                  const toolArgs = toolCall.function.arguments;
+                  const toolResult = executeToolCall(this.projectPath, toolName, toolArgs);
+
+                  // ツール結果をメッセージに追加
+                  this.messages.push({
+                    role: 'tool',
+                    content: toolResult,
+                  } as any);
+                }
+
+                // ツール結果を含めて再度LLMを呼び出し（ストリーミング）
+                yield* this.sendMessage('');
+                return fullResponse;
+              } else {
+                // 通常のアシスタントメッセージを追加
+                this.messages.push({
+                  role: 'assistant',
+                  content: assistantMessage,
+                });
+              }
             }
           } catch (error) {
             console.error('JSONパースエラー:', error);
@@ -261,6 +315,7 @@ export class ChatSession {
         this.model,
         this.messages,
         this.userId,
+        this.projectPath,
       );
       this.lastSavedMessageCount = this.messages.length;
     }
@@ -302,7 +357,8 @@ export class ChatSession {
       sessionData.messages,
       undefined,
       userId,
-      undefined
+      undefined,
+      sessionData.session.project_path || undefined
     );
   }
 
