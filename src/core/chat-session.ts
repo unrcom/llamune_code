@@ -16,6 +16,7 @@ import {
   getParameterPresetById,
   getAllParameterPresets,
   updateSessionModel,
+  getDefaultPrompt,
 } from '../utils/database.js';
 
 /**
@@ -44,8 +45,20 @@ export class ChatSession {
     this.parameters = parameters;
     this.userId = userId;
 
-    // systemPromptが未指定の場合、デフォルトで日本語指示を含むプロンプトを設定
-    this.systemPrompt = systemPrompt || '**必ず日本語で応答してください。**\n\nあなたは親切なAIアシスタントです。ユーザーの質問に丁寧に答えてください。';
+    // systemPromptが未指定の場合、DBからデフォルトプロンプトを取得
+    if (!systemPrompt) {
+      try {
+        const defaultPrompt = getDefaultPrompt();
+        this.systemPrompt = defaultPrompt?.system_prompt || 
+          '**必ず日本語で応答してください。**\n\nあなたは親切なAIアシスタントです。ユーザーの質問に丁寧に答えてください。';
+      } catch (error) {
+        // DBエラー時はハードコードされたデフォルトを使用
+        console.warn('Failed to get default prompt from DB, using fallback:', error);
+        this.systemPrompt = '**必ず日本語で応答してください。**\n\nあなたは親切なAIアシスタントです。ユーザーの質問に丁寧に答えてください。';
+      }
+    } else {
+      this.systemPrompt = systemPrompt;
+    }
 
     // system promptが指定されていて、messagesが空またはsystem roleがない場合、先頭に追加
     if (this.systemPrompt && (this.messages.length === 0 || this.messages[0].role !== 'system')) {

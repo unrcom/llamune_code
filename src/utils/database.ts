@@ -108,6 +108,16 @@ export interface DomainPrompt {
 }
 
 /**
+ * デフォルトプロンプトの型定義
+ */
+export interface DefaultPrompt {
+  id: number;
+  system_prompt: string;
+  description: string | null;
+  updated_at: string;
+}
+
+/**
  * データベースを初期化
  */
 export function initDatabase(): Database.Database {
@@ -1097,6 +1107,49 @@ export function getDefaultDomainPrompt(domainId: number): DomainPrompt | null {
 
     db.close();
     return prompt || null;
+  } catch (error) {
+    db.close();
+    throw error;
+  }
+}
+
+/**
+ * デフォルトプロンプトを取得
+ */
+export function getDefaultPrompt(): DefaultPrompt | null {
+  const db = initDatabase();
+
+  try {
+    const prompt = db
+      .prepare('SELECT * FROM default_prompt WHERE id = 1')
+      .get() as DefaultPrompt | undefined;
+
+    db.close();
+    return prompt || null;
+  } catch (error) {
+    db.close();
+    throw error;
+  }
+}
+
+/**
+ * デフォルトプロンプトを更新
+ */
+export function updateDefaultPrompt(systemPrompt: string, description?: string): boolean {
+  const db = initDatabase();
+
+  try {
+    const stmt = db.prepare(`
+      UPDATE default_prompt 
+      SET system_prompt = ?, 
+          description = ?,
+          updated_at = datetime('now')
+      WHERE id = 1
+    `);
+
+    const result = stmt.run(systemPrompt, description || null);
+    db.close();
+    return result.changes > 0;
   } catch (error) {
     db.close();
     throw error;
