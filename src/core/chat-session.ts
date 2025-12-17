@@ -137,6 +137,7 @@ export class ChatSession {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let assistantMessage = '';
+      let thinkingContent = '';
       let toolCalls: any[] = [];
 
       while (true) {
@@ -155,9 +156,16 @@ export class ChatSession {
               toolCalls = data.message.tool_calls;
             }
 
+            // 思考過程の処理
+            if (data.message?.thinking) {
+              thinkingContent += data.message.thinking;
+              // 思考過程は収集するが、yieldはしない（最後に一括で処理）
+            }
+
             // コンテンツ処理
             if (data.message?.content) {
-              assistantMessage += data.message.content;
+              const content = data.message.content;
+              assistantMessage += content;
               fullResponse = assistantMessage;
               yield fullResponse;
             }
@@ -190,10 +198,11 @@ export class ChatSession {
                 yield* this.sendMessage('');
                 return fullResponse;
               } else {
-                // 通常のアシスタントメッセージを追加
+                // 通常のアシスタントメッセージを追加（思考過程を含める）
                 this.messages.push({
                   role: 'assistant',
                   content: assistantMessage,
+                  thinking: thinkingContent || undefined,
                 });
               }
             }
@@ -342,6 +351,18 @@ export class ChatSession {
    */
   getModel(): string {
     return this.model;
+  }
+
+  /**
+   * 最後のアシスタントメッセージを取得
+   */
+  getLastAssistantMessage(): ChatMessage | null {
+    for (let i = this.messages.length - 1; i >= 0; i--) {
+      if (this.messages[i].role === 'assistant') {
+        return this.messages[i];
+      }
+    }
+    return null;
   }
 
   /**

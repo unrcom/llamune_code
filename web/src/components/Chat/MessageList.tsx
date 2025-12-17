@@ -98,6 +98,20 @@ export function MessageList({ messages, streamingContent, onRetry, isStreaming }
                     {message.model}
                   </div>
                 )}
+                
+                {/* 思考過程の折りたたみ表示 */}
+                {message.role === 'assistant' && message.thinking && (
+                  <details className="mb-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
+                    <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex items-center gap-2">
+                      <span>🧠</span>
+                      <span>思考過程を表示</span>
+                    </summary>
+                    <div className="px-3 py-2 text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono border-t border-gray-200 dark:border-gray-700">
+                      {message.thinking}
+                    </div>
+                  </details>
+                )}
+                
                 <div className="prose prose-sm dark:prose-invert max-w-none overflow-x-auto">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
                 </div>

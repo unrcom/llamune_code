@@ -268,6 +268,7 @@ export interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
   model?: string; // どのモデルが生成したメッセージか（assistantの場合）
+  thinking?: string; // 推論モデルの思考過程（assistantの場合）
   tool_calls?: Array<{
     function: {
       name: string;

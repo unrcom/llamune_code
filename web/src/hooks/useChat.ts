@@ -135,6 +135,7 @@ export function useChat() {
       const decoder = new TextDecoder();
       let buffer = '';
       let fullContent = '';
+      let thinkingContent = '';
 
       try {
         while (true) {
@@ -161,7 +162,8 @@ export function useChat() {
               } else if (parsed.sessionId) {
                 setCurrentSession(parsed.sessionId);
                 fullContent = parsed.fullContent;
-                console.log('✅ Done! Session:', parsed.sessionId, 'Full content length:', fullContent?.length);
+                thinkingContent = parsed.thinking || '';
+                console.log('✅ Done! Session:', parsed.sessionId, 'Full content length:', fullContent?.length, 'Thinking length:', thinkingContent?.length);
               } else if (parsed.error) {
                 throw new Error(parsed.error);
               }
@@ -179,12 +181,13 @@ export function useChat() {
         throw streamError;
       }
 
-      // アシスタントメッセージを追加
+      // アシスタントメッセージを追加（思考過程を含む）
       console.log('💬 Adding assistant message, content length:', fullContent?.length);
       const assistantMessage: Message = {
         role: 'assistant',
         content: fullContent,
         model: currentModel,
+        thinking: thinkingContent || undefined,
       };
       addMessage(assistantMessage);
       setStreamingContent('');
@@ -238,6 +241,7 @@ export function useChat() {
       const decoder = new TextDecoder();
       let buffer = '';
       let fullContent = '';
+      let thinkingContent = '';
 
       try {
         while (true) {
@@ -264,6 +268,7 @@ export function useChat() {
               } else if (parsed.sessionId) {
                 setCurrentSession(parsed.sessionId);
                 fullContent = parsed.fullContent;
+                thinkingContent = parsed.thinking || '';
               } else if (parsed.error) {
                 throw new Error(parsed.error);
               }
@@ -285,11 +290,12 @@ export function useChat() {
         throw streamError;
       }
 
-      // アシスタントメッセージを追加
+      // アシスタントメッセージを追加（思考過程を含む）
       const assistantMessage: Message = {
         role: 'assistant',
         content: fullContent,
         model: modelToUse,
+        thinking: thinkingContent || undefined,
       };
       addMessage(assistantMessage);
       setStreamingContent('');

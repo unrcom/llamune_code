@@ -59,6 +59,7 @@ export interface ChatDoneResponse {
   sessionId: number | null;
   fullContent: string;
   model: string;
+  thinking?: string;
 }
 
 /**

@@ -105,11 +105,15 @@ router.post('/messages', async (req: Request, res: Response) => {
       // セッションを保存
       const newSessionId = session.save();
 
+      // 最後のアシスタントメッセージを取得（思考過程を含む）
+      const lastMessage = session.getLastAssistantMessage();
+
       // 完了イベントを送信
       const doneData: ChatDoneResponse = {
         sessionId: newSessionId,
         fullContent,
         model: session.getModel(),
+        thinking: lastMessage?.thinking,
       };
       res.write(`event: done\ndata: ${JSON.stringify(doneData)}\n\n`);
       res.end();
@@ -200,11 +204,15 @@ router.post('/retry', async (req: Request, res: Response) => {
       // セッションを保存（retry後なので isRetry=true）
       const newSessionId = session.save(true);
 
+      // 最後のアシスタントメッセージを取得（思考過程を含む）
+      const lastMessage = session.getLastAssistantMessage();
+
       // 完了イベントを送信
       const doneData: ChatDoneResponse = {
         sessionId: newSessionId,
         fullContent,
         model: session.getModel(),
+        thinking: lastMessage?.thinking,
       };
       res.write(`event: done\ndata: ${JSON.stringify(doneData)}\n\n`);
       res.end();
