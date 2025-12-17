@@ -8,6 +8,8 @@ import { homedir } from 'os';
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import type { ChatMessage } from './ollama.js';
+import { encrypt, decrypt, isEncrypted } from './encryption.js';
+
 
 // データベースファイルのパス
 const DB_DIR = join(homedir(), '.llamune_code');
@@ -201,25 +203,30 @@ export function createSession(
   return result.lastInsertRowid as number;
 }
 /**
- * メッセージを保存
+ * メッセージを保存（暗号化付き）
  */
 export function saveMessage(
   sessionId: number,
   role: string,
   content: string,
-  model?: string
+  model?: string,
+  thinking?: string
 ): void {
   const db = initDatabase();
   const now = new Date().toISOString();
 
+  // contentとthinkingを暗号化
+  const encryptedContent = encrypt(content);
+  const encryptedThinking = thinking ? encrypt(thinking) : null;
+
   db.prepare(
-    'INSERT INTO messages (session_id, role, content, created_at, model) VALUES (?, ?, ?, ?, ?)'
-  ).run(sessionId, role, content, now, model || null);
+    'INSERT INTO messages (session_id, role, content, created_at, model, thinking) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(sessionId, role, encryptedContent, now, model || null, encryptedThinking);
 
   // セッションの更新日時を更新
   db.prepare('UPDATE sessions SET updated_at = ? WHERE id = ?').run(now, sessionId);
 
-  // 最初のユーザーメッセージの場合、タイトルを自動設定
+  // 最初のユーザーメッセージの場合、タイトルを自動設定（暗号化前のcontentを使用）
   if (role === 'user') {
     const session = db
       .prepare('SELECT title FROM sessions WHERE id = ?')
@@ -236,7 +243,7 @@ export function saveMessage(
 }
 
 /**
- * 会話全体を保存
+ * 会話全体を保存（暗号化付き）
  */
 export function saveConversation(
   model: string,
@@ -254,13 +261,24 @@ export function saveConversation(
 
   const sessionId = sessionResult.lastInsertRowid as number;
 
-  // メッセージを一括保存
+  // 最初のユーザーメッセージからタイトルを自動生成
+  const firstUserMessage = messages.find(m => m.role === 'user');
+  if (firstUserMessage) {
+    const title = firstUserMessage.content.length > 30 
+      ? firstUserMessage.content.substring(0, 30) + '...' 
+      : firstUserMessage.content;
+    db.prepare('UPDATE sessions SET title = ? WHERE id = ?').run(title, sessionId);
+  }
+
+  // メッセージを一括保存（暗号化付き）
   const insertMessage = db.prepare(
-    'INSERT INTO messages (session_id, role, content, created_at, model) VALUES (?, ?, ?, ?, ?)'
+    'INSERT INTO messages (session_id, role, content, created_at, model, thinking) VALUES (?, ?, ?, ?, ?, ?)'
   );
 
   for (const message of messages) {
-    insertMessage.run(sessionId, message.role, message.content, now, message.model || null);
+    const encryptedContent = encrypt(message.content);
+    const encryptedThinking = message.thinking ? encrypt(message.thinking) : null;
+    insertMessage.run(sessionId, message.role, encryptedContent, now, message.model || null, encryptedThinking);
   }
 
   db.close();
@@ -268,7 +286,7 @@ export function saveConversation(
 }
 
 /**
- * 既存セッションにメッセージを追加
+ * 既存セッションにメッセージを追加（暗号化付き）
  */
 export function appendMessagesToSession(
   sessionId: number,
@@ -277,13 +295,15 @@ export function appendMessagesToSession(
   const db = initDatabase();
   const now = new Date().toISOString();
 
-  // メッセージを一括追加
+  // メッセージを一括追加（暗号化付き）
   const insertMessage = db.prepare(
-    'INSERT INTO messages (session_id, role, content, created_at, model) VALUES (?, ?, ?, ?, ?)'
+    'INSERT INTO messages (session_id, role, content, created_at, model, thinking) VALUES (?, ?, ?, ?, ?, ?)'
   );
 
   for (const message of messages) {
-    insertMessage.run(sessionId, message.role, message.content, now, message.model || null);
+    const encryptedContent = encrypt(message.content);
+    const encryptedThinking = message.thinking ? encrypt(message.thinking) : null;
+    insertMessage.run(sessionId, message.role, encryptedContent, now, message.model || null, encryptedThinking);
   }
 
   // セッションの更新日時を更新
@@ -336,7 +356,19 @@ export function listSessions(limit = 200, userId?: number): ChatSession[] {
     : db.prepare(query).all(limit) as ChatSession[];
 
   db.close();
-  return sessions;
+  
+  // previewを復号
+  return sessions.map(session => {
+    if (session.preview) {
+      try {
+        session.preview = decrypt(session.preview);
+      } catch (error) {
+        console.error('Failed to decrypt preview:', error);
+        // 復号に失敗した場合は元のままにする
+      }
+    }
+    return session;
+  });
 }
 
 /**
@@ -413,17 +445,39 @@ export function getSession(sessionId: number, userId?: number): {
     }
   }
 
-  // メッセージを取得（論理削除されていないもののみ）
-  const messages = db
+  // プレビューを復号
+  if (session.preview) {
+    try {
+      session.preview = decrypt(session.preview);
+    } catch (error) {
+      console.error('Failed to decrypt preview:', error);
+    }
+  }
+
+  // メッセージを取得（論理削除されていないもののみ、thinkingも含む）
+  const messagesRaw = db
     .prepare(
       `
-      SELECT role, content, model
+      SELECT role, content, model, thinking
       FROM messages
       WHERE session_id = ? AND deleted_at IS NULL
       ORDER BY id ASC
     `
     )
-    .all(sessionId) as ChatMessage[];
+    .all(sessionId) as Array<{
+      role: string;
+      content: string;
+      model?: string;
+      thinking?: string;
+    }>;
+
+  // メッセージを復号
+  const messages: ChatMessage[] = messagesRaw.map((msg) => ({
+    role: msg.role as 'system' | 'user' | 'assistant' | 'tool',
+    content: decrypt(msg.content),
+    model: msg.model,
+    thinking: msg.thinking ? decrypt(msg.thinking) : undefined,
+  }));
 
   db.close();
 
@@ -708,7 +762,19 @@ export function getAllSessions(userId?: number): ChatSession[] {
     : db.prepare(query).all() as ChatSession[];
 
   db.close();
-  return sessions;
+  
+  // previewを復号
+  return sessions.map(session => {
+    if (session.preview) {
+      try {
+        session.preview = decrypt(session.preview);
+      } catch (error) {
+        console.error('Failed to decrypt preview:', error);
+        // 復号に失敗した場合は元のままにする
+      }
+    }
+    return session;
+  });
 }
 
 /**
@@ -1072,7 +1138,18 @@ export function getDomainPromptsByDomainId(domainId: number): DomainPrompt[] {
       .all(domainId) as DomainPrompt[];
 
     db.close();
-    return prompts;
+    
+    // system_promptを復号（暗号化されている場合のみ）
+    return prompts.map(prompt => {
+      if (prompt.system_prompt && isEncrypted(prompt.system_prompt)) {
+        try {
+          prompt.system_prompt = decrypt(prompt.system_prompt);
+        } catch (error) {
+          console.error('Failed to decrypt system_prompt:', error);
+        }
+      }
+      return prompt;
+    });
   } catch (error) {
     db.close();
     throw error;
@@ -1091,7 +1168,19 @@ export function getDomainPromptById(id: number): DomainPrompt | null {
       .get(id) as DomainPrompt | undefined;
 
     db.close();
-    return prompt || null;
+    
+    if (!prompt) return null;
+    
+    // system_promptを復号（暗号化されている場合のみ）
+    if (prompt.system_prompt && isEncrypted(prompt.system_prompt)) {
+      try {
+        prompt.system_prompt = decrypt(prompt.system_prompt);
+      } catch (error) {
+        console.error('Failed to decrypt system_prompt:', error);
+      }
+    }
+    
+    return prompt;
   } catch (error) {
     db.close();
     throw error;
@@ -1110,7 +1199,19 @@ export function getDefaultDomainPrompt(domainId: number): DomainPrompt | null {
       .get(domainId) as DomainPrompt | undefined;
 
     db.close();
-    return prompt || null;
+    
+    if (!prompt) return null;
+    
+    // system_promptを復号（暗号化されている場合のみ）
+    if (prompt.system_prompt && isEncrypted(prompt.system_prompt)) {
+      try {
+        prompt.system_prompt = decrypt(prompt.system_prompt);
+      } catch (error) {
+        console.error('Failed to decrypt system_prompt:', error);
+      }
+    }
+    
+    return prompt;
   } catch (error) {
     db.close();
     throw error;
