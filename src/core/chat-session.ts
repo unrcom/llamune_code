@@ -114,7 +114,16 @@ export class ChatSession {
     // プロジェクトパスが指定されている場合、ツールを有効化
     if (this.projectPath) {
       request.tools = projectTools;
+      console.log('🔧 Tools enabled for project:', this.projectPath);
+      console.log('📋 Tools:', JSON.stringify(projectTools, null, 2));
     }
+
+    console.log('📤 Request to Ollama:', JSON.stringify({
+      model: request.model,
+      toolsEnabled: !!request.tools,
+      messagesCount: request.messages.length,
+      projectPath: this.projectPath,
+    }, null, 2));
 
     try {
       const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {

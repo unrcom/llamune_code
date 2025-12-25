@@ -4,9 +4,10 @@ import { useAuthStore } from '../../store/authStore';
 import { fetchSessions, fetchSession, updateSessionTitle, deleteSessionApi } from '../../utils/api';
 import type { Session } from '../../types';
 import { DomainSelector } from './DomainSelector';
+import DirectoryTreeModal from '../DirectoryTreeModal';
 
 export function SessionList() {
-  const { currentSessionId, setCurrentSession, setCurrentModel, setMessages, resetChat, setSessions, setMobileView, setCurrentDomainPromptId, setIsProfessionalMode, setProjectPath, messages } = useChatStore();
+  const { currentSessionId, setCurrentSession, setCurrentModel, setMessages, resetChat, setSessions, setMobileView, setCurrentDomainPromptId, setIsProfessionalMode, setProjectPath, projectPath, messages } = useChatStore();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [sessions, setLocalSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(false);
@@ -16,7 +17,7 @@ export function SessionList() {
   const [showInfoId, setShowInfoId] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showDomainSelector, setShowDomainSelector] = useState(false);
-  const [projectPathInput, setProjectPathInput] = useState<string>('');
+  const [showDirectoryTree, setShowDirectoryTree] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const sortedSessions = useMemo(() => {
@@ -50,9 +51,8 @@ export function SessionList() {
       setCurrentModel(response.session.model);
       
       // プロジェクトパスを復元
-      const projectPath = response.session.project_path || '';
-      setProjectPathInput(projectPath);
-      setProjectPath(projectPath || null);
+      const projectPath = response.session.project_path || null;
+      setProjectPath(projectPath);
       
       setMobileView('chat'); // モバイルでチャット画面に切り替え
     } catch (error) {
@@ -86,9 +86,14 @@ export function SessionList() {
   };
 
   const handleDomainSelect = (domainPromptId: number | null, isProfessionalMode?: boolean) => {
-    resetChat();
+    console.log('🔍 handleDomainSelect called');
+    console.log('  projectPath from store:', projectPath);
+    console.log('  domainPromptId:', domainPromptId);
+    console.log('  isProfessionalMode:', isProfessionalMode);
+    
+    resetChat(); // projectPath は保持される
     setCurrentDomainPromptId(domainPromptId);
-    setProjectPath(projectPathInput || null);
+    
     if (isProfessionalMode) {
       setIsProfessionalMode(true);
     }
@@ -179,15 +184,25 @@ export function SessionList() {
             <span>📁</span>
             <span>プロジェクトディレクトリ (オプション)</span>
           </label>
-          <input
-            type="text"
-            value={projectPathInput}
-            onChange={(e) => setProjectPathInput(e.target.value)}
-            disabled={messages.length > 0}
-            placeholder="/path/to/project"
-            className="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            title={messages.length > 0 ? "チャット開始後は変更できません" : ""}
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={projectPath || ''}
+              onChange={(e) => setProjectPath(e.target.value || null)}
+              disabled={messages.length > 0}
+              placeholder="/path/to/project"
+              className="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={messages.length > 0 ? "チャット開始後は変更できません" : ""}
+            />
+            <button
+              onClick={() => setShowDirectoryTree(true)}
+              disabled={messages.length > 0}
+              className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="ディレクトリを選択"
+            >
+              📁 選択
+            </button>
+          </div>
         </div>
         
         <button
@@ -322,6 +337,17 @@ export function SessionList() {
         onClose={() => setShowDomainSelector(false)}
         onSelect={handleDomainSelect}
       />
+
+      {/* Directory Tree Modal */}
+      {showDirectoryTree && (
+        <DirectoryTreeModal
+          onSelect={(path) => {
+            setProjectPath(path);
+            setShowDirectoryTree(false);
+          }}
+          onClose={() => setShowDirectoryTree(false)}
+        />
+      )}
     </div>
   );
 }

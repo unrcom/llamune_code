@@ -94,7 +94,10 @@ export const useChatStore = create<ChatState>()(
   setCurrentPresetId: (presetId) => set({ currentPresetId: presetId }),
   setCurrentDomainPromptId: (domainPromptId) => set({ currentDomainPromptId: domainPromptId }),
   setIsProfessionalMode: (isProfessional) => set({ isProfessionalMode: isProfessional }),
-  setProjectPath: (projectPath) => set({ projectPath: projectPath }),
+  setProjectPath: (projectPath) => {
+    console.log('📂 setProjectPath called with:', projectPath);
+    set({ projectPath: projectPath });
+  },
   addMessage: (message) => set((state) => ({
     messages: [...state.messages, message]
   })),
@@ -162,16 +165,16 @@ export const useChatStore = create<ChatState>()(
       retryOriginalMessage: null,
     };
   }),
-  resetChat: () => set({
+  resetChat: () => set((state) => ({
     currentSessionId: null,
     currentDomainPromptId: null,
     isProfessionalMode: false,
-    projectPath: null,
+    projectPath: state.projectPath, // ← 保持する（nullにしない）
     messages: [],
     error: null,
     isRetryPending: false,
     retryOriginalMessage: null,
-  }),
+  })),
   setMobileView: (view) => set({ mobileView: view }),
   setCancelStreaming: (fn) => set({ cancelStreaming: fn }),
   setInputValue: (value) => set({ inputValue: value }),

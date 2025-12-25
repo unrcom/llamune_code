@@ -14,6 +14,7 @@ import chatRouter from './routes/chat.js';
 import authRouter from './routes/auth.js';
 import domainsRouter from './routes/domains.js';
 import healthRouter from './routes/health.js';
+import filesystemRouter from './routes/filesystem.js';
 
 // package.json を読み込む
 const __filename = fileURLToPath(import.meta.url);
@@ -85,6 +86,10 @@ app.get('/api', (req, res) => {
         prompts: 'GET /api/domains/:id/prompts',
         getPrompt: 'GET /api/domains/prompts/:id',
       },
+      filesystem: {
+        tree: 'GET /api/filesystem/tree?path=/some/path',
+        home: 'GET /api/filesystem/home',
+      },
       repositories: {
         create: 'POST /api/repositories',
         list: 'GET /api/repositories',
@@ -134,6 +139,7 @@ app.use('/api/presets', presetsRouter);
 app.use('/api/system', systemRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/domains', domainsRouter);
+app.use('/api/filesystem', filesystemRouter);
 
 // ヘルスチェック（認証不要）
 app.get('/health', (req, res) => {

@@ -107,20 +107,26 @@ export function useChat() {
     });
 
     try {
+      const requestBody = {
+        sessionId: currentSessionId,
+        content,
+        modelName: currentModel,
+        history: currentSessionId ? undefined : messages,
+        domainPromptId: currentDomainPromptId,
+        projectPath: projectPath,
+      };
+      
+      console.log('📤 Sending message to API:');
+      console.log('  projectPath from store:', projectPath);
+      console.log('  Request body:', requestBody);
+      
       const response = await authenticatedStreamingFetch(`${API_BASE_URL}/chat/messages`, {
         method: 'POST',
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          sessionId: currentSessionId,
-          content,
-          modelName: currentModel,
-          history: currentSessionId ? undefined : messages,
-          domainPromptId: currentDomainPromptId,
-          projectPath: projectPath,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
