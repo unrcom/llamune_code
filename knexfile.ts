@@ -1,9 +1,15 @@
 import type { Knex } from 'knex';
 import { homedir } from 'os';
 import { join } from 'path';
+import { existsSync, mkdirSync } from 'fs';
 
 const DB_DIR = join(homedir(), '.llamune_code');
 const DB_FILE = join(DB_DIR, 'history.db');
+
+// データベースディレクトリが存在しない場合は作成
+if (!existsSync(DB_DIR)) {
+  mkdirSync(DB_DIR, { recursive: true });
+}
 
 const config: { [key: string]: Knex.Config } = {
   development: {

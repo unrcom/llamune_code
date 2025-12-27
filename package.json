@@ -12,7 +12,7 @@
     "dev": "tsx src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "setup": "node scripts/generate-encryption-key.js",
+    "setup": "node scripts/generate-secrets.js",
     "encrypt-domain-prompts": "tsx scripts/encrypt-domain-prompts.ts",
     "api": "tsx src/api/server.ts 2>&1 | tee -a api-debug.log",
     "api:build": "tsc && node dist/api/server.js 2>&1 | tee -a api-debug.log",
@@ -43,7 +43,7 @@
   "author": "mop",
   "license": "MIT",
   "engines": {
-    "node": ">=18.0.0"
+    "node": "22.21.0"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

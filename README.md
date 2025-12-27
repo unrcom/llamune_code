@@ -86,20 +86,73 @@ AI: [read_file: /your/project/package.json を実行]
 
 ## 🚀 クイックスタート
 
-5分でLlamune Codeを始められます。
+以下の手順でLlamune Codeを始められます。
+（初回セットアップ時間: 約20〜40分）
+
+**所要時間の内訳:**
+- 環境準備（Node.js, Ollama）: 5-10分
+- 依存関係インストール: 1-3分
+- モデルダウンロード: 10-30分（ネットワーク速度に依存）
+- 設定とマイグレーション: 1-2分
 
 ### 1. 前提条件
 
-```bash
-# Node.js のインストール確認
-node --version  # v18以上が必要
+#### Node.js v22.21.0 のセットアップ
 
-# Ollama のインストール
+```bash
+# nvm (Node Version Manager) のインストール確認
+nvm --version
+
+# nvmがインストールされていない場合（command not foundの場合）
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+source ~/.zshrc  # ターミナルを再起動するか、このコマンドを実行
+
+# Node.js v22.21.0 をインストール
+nvm install 22.21.0
+
+# v22.21.0 に切り替え
+nvm use 22.21.0
+
+# 確認
+node --version  # v22.21.0 と表示されることを確認
+```
+
+**⚠️ 重要**: Node.js v22.21.0が必須です。v24.1.0では動作しません。
+
+#### Ollama のインストールと起動
+
+```bash
+# Ollama のインストール確認
+ollama --version  # バージョンが表示されればインストール済み
+
+# インストールされていない場合（command not foundの場合）
 # macOS
 brew install ollama
 
 # Linux
 curl -fsSL https://ollama.com/install.sh | sh
+
+# Ollama サービスの起動確認
+ollama list
+
+# もし "Error: could not connect to ollama app" が出た場合
+# 別ターミナルで以下を実行してサービスを起動
+ollama serve
+```
+
+**💡 ヒント**: 
+- `ollama --version` で警告が出てもバージョンが表示されればOKです
+- `Warning: could not connect to a running Ollama instance` が出た場合、`ollama serve` を実行してください
+
+#### ビルドツールの確認（macOS）
+
+```bash
+# Xcode Command Line Tools の確認
+xcode-select -p
+# /Library/Developer/CommandLineTools と表示されればOK
+
+# 表示されない場合
+xcode-select --install
 ```
 
 ### 2. リポジトリのクローン
@@ -111,28 +164,123 @@ cd llamune_code
 
 ### 3. セットアップ
 
+#### 3-1. 依存関係のインストール
+
 ```bash
-# 依存関係のインストール
 npm install
+# 所要時間: 約1-3分
+```
 
-# 環境変数のコピー
+**⚠️ トラブルシューティング:**
+もし以下のエラーが出た場合:
+```
+fatal error: 'climits' file not found
+```
+
+Xcode Command Line Toolsを再インストールしてください:
+```bash
+sudo rm -rf /Library/Developer/CommandLineTools
+xcode-select --install
+# ダイアログで「インストール」をクリック（5-10分かかります）
+
+# 完了後、再度実行
+npm install
+```
+
+#### 3-2. 環境変数のコピー
+
+```bash
 cp .env.example .env
+```
 
-# 暗号化キーの生成
+#### 3-3. シークレットキーの生成
+
+```bash
 npm run setup
+# JWT_SECRET と ENCRYPTION_KEY が自動生成されます
+```
 
-# データベースのマイグレーション
+**💡 重要**: 
+- デフォルト値が残っている場合は自動的に置き換えられます
+- 既に設定済みの値は上書きされません
+
+#### 3-4. データベースのマイグレーション
+
+```bash
+# データベース用ディレクトリの作成
+mkdir -p ~/.llamune_code
+
+# マイグレーション実行
 npm run migrate:latest
+# "Batch 1 run: 5 migrations" と表示されれば成功
+```
+
+**💡 ヒント**: `Failed to load external module` の警告は無害です。
+
+#### 3-5. 管理ユーザーの作成
+
+```bash
+npm run create-user admin admin admin
+```
+
+**期待される出力:**
+```
+✅ User created successfully
+
+👤 User ID: 1
+📧 Username: admin
+🔐 Password: admin
+👑 Role: admin
+
+You can now login with these credentials.
+```
+
+**💡 重要**: 
+- このコマンドでデフォルト管理ユーザー（admin/admin）が作成されます
+- Web UIにログインする際に必要です
+- 既に存在する場合はエラーが表示されます
+
+**💡 使い方:**
+```bash
+# 基本形式
+npm run create-user <username> <password> <role>
+
+# 例: 一般ユーザーを作成
+npm run create-user john password123 user
 ```
 
 ### 4. モデルのダウンロード
 
+#### Ollamaサービスの起動
+
+**別のターミナルウィンドウ**で以下を実行してください:
+
+```bash
+ollama serve
+# このターミナルは起動したままにしておきます
+```
+
+**元のターミナルに戻って**、サービスが起動していることを確認:
+
+```bash
+ollama list
+# モデル一覧が表示されればOK（空でも可）
+```
+
+**💡 ヒント:**
+- `ollama serve` は起動したままにしておく必要があります
+- バックグラウンドで起動する場合: `ollama serve > /dev/null 2>&1 &`
+
+#### モデルのダウンロード
+
 ```bash
 # 推奨モデル（どれか1つ）
-ollama pull gpt-oss:20b         # 推論特化（大規模）
-ollama pull qwen2.5-coder:7b    # コーディング特化（推奨）
-ollama pull gemma2:9b           # バランス型
+ollama pull qwen2.5-coder:7b    # コーディング特化（推奨、約4GB）
+ollama pull gemma2:9b           # バランス型（約5GB）
+ollama pull gpt-oss:20b         # 推論特化（大規模、約12GB）
 ```
+
+**所要時間:** ネットワーク速度により10〜30分
 
 ### 5. 起動
 
@@ -148,6 +296,12 @@ npm run dev
 
 ブラウザで http://localhost:5173 を開いてください 🎉
 
+**ログイン情報:**
+- **ユーザー名**: admin
+- **パスワード**: admin
+
+これで Llamune Code を使い始めることができます!
+
 ## 📦 セットアップ
 
 ### 必要な環境
@@ -157,14 +311,21 @@ npm run dev
 - **GPU**: Apple Silicon / NVIDIA / AMD（推奨、なくても動作可能）
 - **ストレージ**: 20GB以上の空き容量
 
-**ソフトウェア：**
-- Node.js 18.x 以降
+**ソフトウェア:**
+- Node.js v22.21.0（厳密）- nvm推奨
 - Ollama 最新版
 - SQLite（better-sqlite3経由）
+- **macOS**: Xcode Command Line Tools (`xcode-select --install`)
+- **Linux**: build-essential, Python 3.x
 
-**動作検証環境：**
-- ✅ Apple M1 (16GB RAM)
-- ✅ Apple M4 (32GB RAM)
+**動作検証環境:**
+- ✅ macOS - Apple M1 (16GB RAM)
+- ✅ macOS - Apple M4 (32GB RAM)
+- ❌ Windows - サポート対象外
+
+**⚠️ 重要**: 
+- Node.js v22.21.0が必須です。v24.1.0では動作しません。
+- Windows環境はサポート対象外です（LLMが動作しません）。
 
 ### インストール手順
 
@@ -176,9 +337,6 @@ brew install ollama
 
 # Linux
 curl -fsSL https://ollama.com/install.sh | sh
-
-# Windows
-# https://ollama.com/download からインストーラーをダウンロード
 ```
 
 #### 2. プロジェクトのセットアップ
