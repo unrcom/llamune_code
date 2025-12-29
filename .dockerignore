@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.gitignore
+.env
+*.log
+*.md
+!README.md
+.vscode
+.idea
+coverage
+.DS_Store
+web/node_modules
+web/dist
