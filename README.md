@@ -168,6 +168,61 @@ ollama list
 exit
 ```
 
+#### ステップ6: ユーザー登録（オプション）
+
+admin以外のユーザーを作成する場合は、CLIを使用します。
+
+```bash
+llamune register
+```
+
+**登録プロセス:**
+```
+📝 Llamune User Registration
+
+Username: user1
+Password: ********
+Confirm Password: ********
+
+🔄 Creating user...
+✅ User registered successfully
+
+👤 User: user1 (user)
+
+これで llamune コマンドが使用できます。
+```
+
+**登録完了後、自動的にログイン状態になります。確認してみましょう:**
+
+```bash
+llamune whoami
+# または短縮版
+llmn whoami
+```
+
+```
+👤 Current User:
+
+  Username: user1
+  Role: user
+  User ID: 3
+  Created: 2025/12/29 16:23:44
+```
+
+登録したユーザーは、Web UI（http://localhost:5173）でもログインできます。
+
+**その他のCLIコマンド:**
+```bash
+llamune login      # ログイン
+llamune logout     # ログアウト
+llamune chat       # CLIでチャット開始
+llamune ls         # 利用可能なモデル一覧
+```
+
+詳細は `llamune --help` を参照してください。
+
+---
+
 これで Llamune Code を使い始めることができます!
 
 ---
