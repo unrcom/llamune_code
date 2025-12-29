@@ -109,12 +109,42 @@ cd llamune_code
 docker compose up
 ```
 
+**初回起動には10-15分かかります。**
+
 初回起動時、以下が自動で実行されます：
 - ✅ `.env`ファイル生成（JWT_SECRET、ENCRYPTION_KEY自動生成）
 - ✅ データベースマイグレーション
 - ✅ adminユーザー作成（admin/admin）
 
-#### ステップ3: アクセス
+#### ステップ3: 起動完了の確認
+
+**GUIユーザー（Docker Desktop）:**
+
+Docker Desktopを開き、Containersタブで以下を確認：
+- ✅ `llamune_ollama` - 緑色のアイコン（Running + Healthy）
+- ✅ `llamune_backend` - 緑色のアイコン（Running）
+- ✅ `llamune_frontend` - 緑色のアイコン（Running）
+
+**CLIユーザー:**
+
+別のターミナルで以下を実行：
+
+```bash
+docker container ls
+```
+
+以下のような出力で、3つのコンテナが全て `Up` になっていることを確認：
+
+```
+CONTAINER ID   IMAGE                   STATUS                   PORTS
+1dec253a1de8   llamune_code-frontend   Up 3 minutes             0.0.0.0:5173->5173/tcp
+3cd1d59ec614   llamune_code-backend    Up 3 minutes             0.0.0.0:3000->3000/tcp
+dec801158076   llamune_code-ollama     Up 3 minutes (healthy)   0.0.0.0:11434->11434/tcp
+```
+
+特に `llamune_ollama` が **(healthy)** になっていることを確認してください。
+
+#### ステップ4: アクセス
 
 ブラウザで http://localhost:5173 を開いてログイン 🎉
 
@@ -122,7 +152,7 @@ docker compose up
 - **ユーザー名**: admin
 - **パスワード**: admin
 
-#### ステップ4: モデルのダウンロード
+#### ステップ5: モデルのダウンロード
 
 ```bash
 # Ollamaコンテナに入る
@@ -144,7 +174,7 @@ exit
 
 ### 方法B: 手動セットアップ
 
-Dockerを使わず、環境を直接管理したい場合は **[MANUAL_SETUP.md](docs/MANUAL_SETUP.md)** を参照してください。
+Dockerを使わず、環境を直接管理したい場合は **[MANUAL_SETUP.md](MANUAL_SETUP.md)** を参照してください。
 
 **概要:**
 - Node.js v22.21.0 のインストールが必要
@@ -497,15 +527,15 @@ mop - [@unrcom](https://github.com/unrcom)
 
 ## 🔗 リンク
 
-- [Llamune コンセプトページ](https://llamune.com) - サービスを体感できるデモ
+- [Llamune コンセプトページ](https://llamune.com)（準備中） - サービスを体感できるデモ
 - [GitHub リポジトリ](https://github.com/unrcom/llamune_code)
-- [手動セットアップガイド](./docs/MANUAL_SETUP.md)
+- [手動セットアップガイド](./MANUAL_SETUP.md)
 - [ドキュメント](./docs/)
 - [API仕様書](./docs/API_SPECIFICATION.md)
 - [データベースマイグレーションガイド](./docs/DATABASE_MIGRATION.md)
 
 ---
 
-**最終更新**: 2025-12-29
+**最終更新**: 2025-12-28
 **バージョン**: 0.1.0
 **ステータス**: Alpha（Phase 1.6 完了 - Docker化）

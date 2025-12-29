@@ -30,6 +30,9 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
       headers.authorization = `Bearer ${token.substring(0, 10)}...(masked)`;
     }
   }
+  if (headers.cookie) {
+    headers.cookie = headers.cookie.substring(0, 50) + '...(masked)';
+  }
   console.log(`📋 Headers: ${JSON.stringify(headers)}`);
 
   // リクエストボディ（パスワードはマスク）
