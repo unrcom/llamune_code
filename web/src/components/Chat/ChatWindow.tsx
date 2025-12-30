@@ -62,21 +62,27 @@ export function ChatWindow() {
             )}
 
             {/* モデル選択 */}
-            {models.length > 0 && (
-              <select
-                value={currentModel}
-                onChange={(e) => setCurrentModel(e.target.value)}
-                disabled={isStreaming || messages.length > 0}
-                className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={messages.length > 0 ? "モデルを変更するには New Chat で新しい会話を開始してください" : ""}
-              >
-                {models.map((model) => (
-                  <option key={model.name} value={model.name}>
-                    {model.name}
-                  </option>
-                ))}
-              </select>
-            )}
+            <div className="flex items-center gap-2">
+              {models.length > 0 ? (
+                <select
+                  value={currentModel}
+                  onChange={(e) => setCurrentModel(e.target.value)}
+                  disabled={isStreaming || messages.length > 0}
+                  className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={messages.length > 0 ? "モデルを変更するには New Chat で新しい会話を開始してください" : ""}
+                >
+                  {models.map((model) => (
+                    <option key={model.name} value={model.name}>
+                      {model.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg">
+                  ⚠️ インストール済みのLLMがありません
+                </div>
+              )}
+            </div>
           </div>
           <UserMenu />
         </div>

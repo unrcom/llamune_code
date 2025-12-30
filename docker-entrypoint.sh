@@ -14,9 +14,9 @@ fi
 
 # Ollamaの起動を待つ
 echo "⏳ Waiting for Ollama to be ready..."
-until curl -s http://ollama:11434/api/tags > /dev/null 2>&1; do
-  echo "   Ollama is not ready yet. Retrying in 2 seconds..."
-  sleep 2
+until curl -s ${OLLAMA_API_URL}/api/tags > /dev/null 2>&1; do
+  echo "   Ollama is not ready yet. Retrying in 10 seconds..."
+  sleep 10
 done
 echo "✅ Ollama is ready!"
 

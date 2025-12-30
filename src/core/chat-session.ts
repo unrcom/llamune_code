@@ -99,7 +99,7 @@ export class ChatSession {
     }
 
     let fullResponse = '';
-    const OLLAMA_BASE_URL = 'http://localhost:11434';
+    const OLLAMA_BASE_URL = process.env.OLLAMA_API_URL || 'http://localhost:11434';
 
     const request: any = {
       model: this.model,
