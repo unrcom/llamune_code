@@ -92,19 +92,47 @@ Llamune Codeを始める方法は2つあります：
 
 **必要なもの:**
 - Docker Desktop（Mac/Windows）または Docker + Docker Compose（Linux）
-- 空き容量: 約10GB
+- **Ollama**（ホスト側にインストールが必要）
+- 空き容量: 約10GB（LLMモデル用）
 
 **所要時間:** 初回 10-15分、2回目以降 数秒
 
-#### ステップ1: リポジトリをクローン
+#### ステップ1: Ollamaのインストールと起動
 
+Docker環境でも、**ホスト側でOllamaを起動する必要があります。**
+```bash
+# macOS
+brew install ollama
+
+# Linux
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+**Ollamaを起動（別ターミナルで実行）:**
+```bash
+ollama serve
+```
+
+このターミナルは起動したままにしておいてください。
+
+**モデルをダウンロード（初回のみ）:**
+
+別のターミナルで：
+```bash
+# 推奨モデル
+ollama pull gemma2:9b
+
+# 確認
+ollama list
+```
+
+#### ステップ2: リポジトリをクローン
 ```bash
 git clone https://github.com/unrcom/llamune_code.git
 cd llamune_code
 ```
 
-#### ステップ2: Docker起動
-
+#### ステップ3: Docker起動
 ```bash
 docker compose up
 ```
@@ -116,57 +144,35 @@ docker compose up
 - ✅ データベースマイグレーション
 - ✅ adminユーザー作成（admin/admin）
 
-#### ステップ3: 起動完了の確認
+#### ステップ4: 起動完了の確認
 
 **GUIユーザー（Docker Desktop）:**
 
 Docker Desktopを開き、Containersタブで以下を確認：
-- ✅ `llamune_ollama` - 緑色のアイコン（Running + Healthy）
 - ✅ `llamune_backend` - 緑色のアイコン（Running）
 - ✅ `llamune_frontend` - 緑色のアイコン（Running）
 
 **CLIユーザー:**
 
 別のターミナルで以下を実行：
-
 ```bash
 docker container ls
 ```
 
-以下のような出力で、3つのコンテナが全て `Up` になっていることを確認：
-
+以下のような出力で、2つのコンテナが全て `Up` になっていることを確認：
 ```
-CONTAINER ID   IMAGE                   STATUS                   PORTS
-1dec253a1de8   llamune_code-frontend   Up 3 minutes             0.0.0.0:5173->5173/tcp
-3cd1d59ec614   llamune_code-backend    Up 3 minutes             0.0.0.0:3000->3000/tcp
-dec801158076   llamune_code-ollama     Up 3 minutes (healthy)   0.0.0.0:11434->11434/tcp
+CONTAINER ID   IMAGE                   STATUS           PORTS
+1dec253a1de8   llamune_code-frontend   Up 3 minutes     0.0.0.0:5173->5173/tcp
+3cd1d59ec614   llamune_code-backend    Up 3 minutes     0.0.0.0:3000->3000/tcp
 ```
 
-特に `llamune_ollama` が **(healthy)** になっていることを確認してください。
-
-#### ステップ4: アクセス
+#### ステップ5: アクセス
 
 ブラウザで http://localhost:5173 を開いてログイン 🎉
 
 **ログイン情報:**
 - **ユーザー名**: admin
 - **パスワード**: admin
-
-#### ステップ5: モデルのダウンロード
-
-```bash
-# Ollamaコンテナに入る
-docker exec -it llamune_ollama bash
-
-# モデルをダウンロード
-ollama pull qwen2.5-coder:7b
-
-# 確認
-ollama list
-
-# 終了
-exit
-```
 
 #### ステップ6: ユーザー登録（オプション）
 
