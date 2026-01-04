@@ -98,6 +98,7 @@ export interface SessionDetailResponse {
     project_path?: string | null;
   };
   messages: ChatMessage[];
+  systemPrompt?: string;
 }
 
 /**

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useChatStore } from '../../store/chatStore';
+import { useAuthStore } from '../../store/authStore';
 import { useChat } from '../../hooks/useChat';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
@@ -12,10 +13,12 @@ export function ChatWindow() {
     messages,
     currentModel,
     currentPresetId,
+    currentSessionId,
     models,
     presets,
     error,
     isRetryPending,
+    systemPrompt,
     setCurrentModel,
     acceptRetry,
     rejectRetry,
@@ -25,6 +28,7 @@ export function ChatWindow() {
   const { sendMessage, retryMessage, streamingContent, isStreaming } = useChat();
   const [isRetryModalOpen, setIsRetryModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -41,6 +45,49 @@ export function ChatWindow() {
 
   const handleRetry = (modelName: string, presetId: number | null) => {
     retryMessage(modelName, presetId);
+  };
+
+  const handleExport = async () => {
+    if (!currentSessionId) return;
+    
+    setIsExporting(true);
+    try {
+      const response = await fetch(`/api/chat/sessions/${currentSessionId}/export`, {
+        headers: {
+          'Authorization': `Bearer ${useAuthStore.getState().tokens?.accessToken || ''}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to export session');
+      }
+
+      // レスポンスからファイル名を取得
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `llamune_chat_${currentSessionId}.json`;
+      if (contentDisposition) {
+        const matches = /filename="([^"]+)"/.exec(contentDisposition);
+        if (matches && matches[1]) {
+          filename = matches[1];
+        }
+      }
+
+      // JSONをダウンロード
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('エクスポートに失敗しました');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -84,7 +131,26 @@ export function ChatWindow() {
               )}
             </div>
           </div>
-          <UserMenu />
+          
+          {/* 右側のボタン群 */}
+          <div className="flex items-center gap-2">
+            {/* エクスポートボタン */}
+            {currentSessionId && (
+              <button
+                onClick={handleExport}
+                disabled={isExporting}
+                className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                title="チャット履歴をJSONファイルとしてエクスポート"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                {isExporting ? 'エクスポート中...' : 'エクスポート'}
+              </button>
+            )}
+            
+            <UserMenu />
+          </div>
         </div>
       </div>
 
@@ -101,6 +167,7 @@ export function ChatWindow() {
         streamingContent={streamingContent}
         onRetry={!isRetryPending ? () => setIsRetryModalOpen(true) : undefined}
         isStreaming={isStreaming}
+        systemPrompt={systemPrompt || undefined}
       />
 
       {/* Retry Confirmation */}

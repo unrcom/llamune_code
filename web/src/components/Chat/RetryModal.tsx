@@ -26,13 +26,11 @@ export function RetryModal({
   let index = 1;
 
   models.forEach((model) => {
-    // デフォルト（プリセットなし）
-    combinations.push({ model, preset: null, index: index++ });
 
-    // 最初のプリセットのみ
-    if (presets.length > 0) {
-      combinations.push({ model, preset: presets[0], index: index++ });
-    }
+    // すべてのプリセット
+    presets.forEach((preset) => {
+      combinations.push({ model, preset, index: index++ });
+    });
   });
 
   const handleSelect = (modelName: string, presetId: number | null) => {
@@ -80,7 +78,7 @@ export function RetryModal({
                       {model.name}
                     </span>
                     <span className="text-gray-600 dark:text-gray-400">
-                      ({preset ? 'creative' : 'default'})
+                      {preset?.name}
                     </span>
                   </div>
                 </button>

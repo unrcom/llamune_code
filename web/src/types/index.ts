@@ -131,6 +131,7 @@ export interface SessionDetailResponse {
     project_path?: string | null;
   };
   messages: Message[];
+  systemPrompt?: string;
 }
 
 export interface ApiError {

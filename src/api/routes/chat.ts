@@ -1,11 +1,15 @@
 import { Router, Request, Response } from 'express';
 import { ChatSession } from '../../core/chat-session.js';
+import type { ChatParameters } from '../../core/chat-session.js';
 import {
   getAllSessions,
   getSession,
   deleteSession,
   updateSessionTitle,
   getDomainPromptById,
+  getParameterPresetById,
+  deleteSecondLastAssistantMessage,
+  deleteLastAssistantMessage,
 } from '../../utils/database.js';
 import type {
   ApiError,
@@ -75,14 +79,32 @@ router.post('/messages', async (req: Request, res: Response) => {
     } else {
       // 新規セッション作成
       const model = modelName || 'gemma2:9b';
+      
+      // presetIdからparametersを取得
+      let parameters: ChatParameters | undefined;
+      if (presetId) {
+        const preset = getParameterPresetById(presetId);
+        if (preset) {
+          parameters = {
+            temperature: preset.temperature,
+            top_p: preset.top_p,
+            top_k: preset.top_k,
+            repeat_penalty: preset.repeat_penalty,
+            num_ctx: preset.num_ctx,
+          };
+        }
+      }
+      
       session = new ChatSession(
         model,
         null,
         history,
-        undefined,
+        parameters,
         userId,
         systemPrompt,
         projectPath,
+        domainPromptId,
+        presetId,
       );
     }
 
@@ -114,6 +136,7 @@ router.post('/messages', async (req: Request, res: Response) => {
         fullContent,
         model: session.getModel(),
         thinking: lastMessage?.thinking,
+        systemPrompt: session.getSystemPrompt(),
       };
       res.write(`event: done\ndata: ${JSON.stringify(doneData)}\n\n`);
       res.end();
@@ -182,7 +205,23 @@ router.post('/retry', async (req: Request, res: Response) => {
         res.status(400).json(error);
         return;
       }
-      session = new ChatSession(modelName, null, history, undefined, userId);
+      
+      // presetIdからparametersを取得
+      let parameters: ChatParameters | undefined;
+      if (presetId) {
+        const preset = getParameterPresetById(presetId);
+        if (preset) {
+          parameters = {
+            temperature: preset.temperature,
+            top_p: preset.top_p,
+            top_k: preset.top_k,
+            repeat_penalty: preset.repeat_penalty,
+            num_ctx: preset.num_ctx,
+          };
+        }
+      }
+      
+      session = new ChatSession(modelName, null, history, parameters, userId, undefined, undefined, undefined, presetId);
     }
 
     // SSEヘッダーを設定
@@ -213,6 +252,7 @@ router.post('/retry', async (req: Request, res: Response) => {
         fullContent,
         model: session.getModel(),
         thinking: lastMessage?.thinking,
+        systemPrompt: session.getSystemPrompt(),
       };
       res.write(`event: done\ndata: ${JSON.stringify(doneData)}\n\n`);
       res.end();
@@ -299,12 +339,85 @@ router.get('/sessions/:id', (req: Request, res: Response) => {
     const response: SessionDetailResponse = {
       session: sessionData.session,
       messages: sessionData.messages,
+      systemPrompt: sessionData.systemPrompt,
     };
     res.json(response);
   } catch (error) {
     console.error('Error fetching session:', error);
     const apiError: ApiError = {
       error: error instanceof Error ? error.message : 'Failed to fetch session',
+      code: 'INTERNAL_ERROR',
+      statusCode: 500,
+    };
+    res.status(500).json(apiError);
+  }
+});
+
+/**
+ * GET /api/chat/sessions/:id/export - セッションをJSON形式でエクスポート
+ */
+router.get('/sessions/:id/export', (req: Request, res: Response) => {
+  try {
+    const sessionId = parseInt(req.params.id, 10);
+    if (isNaN(sessionId)) {
+      const error: ApiError = {
+        error: 'Invalid session ID',
+        code: 'INVALID_REQUEST',
+        statusCode: 400,
+      };
+      res.status(400).json(error);
+      return;
+    }
+
+    // ログインユーザーのセッションのみ取得（所有者チェック）
+    const userId = req.user?.userId;
+    const sessionData = getSession(sessionId, userId);
+    if (!sessionData) {
+      const error: ApiError = {
+        error: 'Session not found or access denied',
+        code: 'NOT_FOUND',
+        statusCode: 404,
+      };
+      res.status(404).json(error);
+      return;
+    }
+
+    // エクスポート用のJSON構造を作成
+    const exportData = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      session: {
+        id: sessionData.session.id,
+        title: sessionData.session.title,
+        model: sessionData.session.model,
+        created_at: sessionData.session.created_at,
+        updated_at: sessionData.session.updated_at,
+        project_path: sessionData.session.project_path,
+        systemPrompt: sessionData.systemPrompt,
+      },
+      messages: sessionData.messages.map(msg => ({
+        id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        created_at: msg.created_at,
+        thinking: msg.thinking, // assistantメッセージの思考過程
+      })),
+    };
+
+    // ファイル名に使用するためのタイトル（特殊文字を除去）
+    const safeTitle = sessionData.session.title
+      .replace(/[^a-zA-Z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\s-]/g, '')
+      .substring(0, 50)
+      .trim() || 'chat';
+    
+    // Content-Dispositionヘッダーでファイル名を指定
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="llamune_${safeTitle}_${sessionId}.json"`);
+    res.json(exportData);
+  } catch (error) {
+    console.error('Error exporting session:', error);
+    const apiError: ApiError = {
+      error: error instanceof Error ? error.message : 'Failed to export session',
       code: 'INTERNAL_ERROR',
       statusCode: 500,
     };
@@ -522,6 +635,91 @@ router.delete('/sessions/:id', (req: Request, res: Response) => {
   } catch (error) {
     const apiError: ApiError = {
       error: error instanceof Error ? error.message : 'Delete failed',
+      code: 'INTERNAL_ERROR',
+      statusCode: 500,
+    };
+    res.status(500).json(apiError);
+  }
+});
+
+
+/**
+ * POST /api/chat/retry/accept - Retry採用（古いメッセージを削除）
+ */
+router.post('/retry/accept', (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.body as { sessionId: number };
+    if (!sessionId) {
+      const error: ApiError = {
+        error: 'sessionId is required',
+        code: 'INVALID_REQUEST',
+        statusCode: 400,
+      };
+      res.status(400).json(error);
+      return;
+    }
+
+    // 所有者チェック
+    const userId = req.user?.userId;
+    const sessionData = getSession(sessionId, userId);
+    if (!sessionData) {
+      const error: ApiError = {
+        error: 'Session not found or access denied',
+        code: 'NOT_FOUND',
+        statusCode: 404,
+      };
+      res.status(404).json(error);
+      return;
+    }
+
+    // 最後から2番目のアシスタントメッセージを削除
+    const success = deleteSecondLastAssistantMessage(sessionId);
+    res.json({ success, sessionId });
+  } catch (error) {
+    const apiError: ApiError = {
+      error: error instanceof Error ? error.message : 'Accept retry failed',
+      code: 'INTERNAL_ERROR',
+      statusCode: 500,
+    };
+    res.status(500).json(apiError);
+  }
+});
+
+/**
+ * POST /api/chat/retry/reject - Retry破棄（新しいメッセージを削除）
+ */
+router.post('/retry/reject', (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.body as { sessionId: number };
+    if (!sessionId) {
+      const error: ApiError = {
+        error: 'sessionId is required',
+        code: 'INVALID_REQUEST',
+        statusCode: 400,
+      };
+      res.status(400).json(error);
+      return;
+    }
+
+    // 所有者チェック
+    const userId = req.user?.userId;
+    const sessionData = getSession(sessionId, userId);
+    if (!sessionData) {
+      const error: ApiError = {
+        error: 'Session not found or access denied',
+        code: 'NOT_FOUND',
+        statusCode: 404,
+      };
+      res.status(404).json(error);
+      return;
+    }
+
+    // 最後のアシスタントメッセージを削除
+    const success = deleteLastAssistantMessage(sessionId);
+    res.json({ success, sessionId });
+  } catch (error) {
+    const apiError: ApiError = {
+      error: error instanceof Error ? error.message : 'Reject retry failed',
       code: 'INTERNAL_ERROR',
       statusCode: 500,
     };

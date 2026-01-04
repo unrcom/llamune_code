@@ -7,7 +7,7 @@ import { DomainSelector } from './DomainSelector';
 import DirectoryTreeModal from '../DirectoryTreeModal';
 
 export function SessionList() {
-  const { currentSessionId, setCurrentSession, setCurrentModel, setMessages, resetChat, setSessions, setMobileView, setCurrentDomainPromptId, setIsProfessionalMode, setProjectPath, projectPath, messages } = useChatStore();
+  const { currentSessionId, setCurrentSession, setCurrentModel, setMessages, resetChat, setSessions, setMobileView, setCurrentDomainPromptId, setIsProfessionalMode, setProjectPath, setSystemPrompt, projectPath, messages } = useChatStore();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [sessions, setLocalSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(false);
@@ -49,6 +49,9 @@ export function SessionList() {
       setCurrentSession(sessionId);
       setMessages(response.messages);
       setCurrentModel(response.session.model);
+      
+      // システムプロンプトを復元
+      setSystemPrompt(response.systemPrompt || null);
       
       // プロジェクトパスを復元
       const projectPath = response.session.project_path || null;

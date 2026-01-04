@@ -8,9 +8,10 @@ interface MessageListProps {
   streamingContent?: string;
   onRetry?: () => void;
   isStreaming?: boolean;
+  systemPrompt?: string;
 }
 
-export function MessageList({ messages, streamingContent, onRetry, isStreaming }: MessageListProps) {
+export function MessageList({ messages, streamingContent, onRetry, isStreaming, systemPrompt }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
@@ -77,6 +78,19 @@ export function MessageList({ messages, streamingContent, onRetry, isStreaming }
       onScroll={handleScroll}
       className="flex-1 overflow-y-auto px-4 py-6 space-y-6"
     >
+      {/* システムプロンプトの表示 */}
+      {systemPrompt && (
+        <details className="bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100 flex items-center gap-2">
+            <span>📋</span>
+            <span>システムプロンプトを表示</span>
+          </summary>
+          <div className="px-4 py-3 text-sm text-blue-900 dark:text-blue-100 whitespace-pre-wrap border-t border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-900">
+            {systemPrompt}
+          </div>
+        </details>
+      )}
+      
       {displayMessages.map((message, index) => {
         const isLastAssistant = message.role === 'assistant' && index === lastAssistantIndex;
 

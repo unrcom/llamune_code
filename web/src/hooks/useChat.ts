@@ -72,6 +72,7 @@ export function useChat() {
     setRetryPending,
     setCancelStreaming,
     setInputValue,
+    setSystemPrompt,
   } = useChatStore();
 
   const [streamingContent, setStreamingContent] = useState('');
@@ -169,6 +170,10 @@ export function useChat() {
                 setCurrentSession(parsed.sessionId);
                 fullContent = parsed.fullContent;
                 thinkingContent = parsed.thinking || '';
+                // システムプロンプトを保存
+                if (parsed.systemPrompt) {
+                  setSystemPrompt(parsed.systemPrompt);
+                }
                 console.log('✅ Done! Session:', parsed.sessionId, 'Full content length:', fullContent?.length, 'Thinking length:', thinkingContent?.length);
               } else if (parsed.error) {
                 throw new Error(parsed.error);
@@ -273,6 +278,10 @@ export function useChat() {
                 setStreamingContent(fullContent);
               } else if (parsed.sessionId) {
                 setCurrentSession(parsed.sessionId);
+                // システムプロンプトを保存
+                if (parsed.systemPrompt) {
+                  setSystemPrompt(parsed.systemPrompt);
+                }
                 fullContent = parsed.fullContent;
                 thinkingContent = parsed.thinking || '';
               } else if (parsed.error) {

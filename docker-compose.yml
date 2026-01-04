@@ -7,11 +7,12 @@ services:
       context: .
       dockerfile: Dockerfile.backend
     container_name: llamune_backend
+    env_file:
+      - .env
     environment:
       - OLLAMA_API_URL=http://host.docker.internal:11434
       - NODE_ENV=development
       - PORT=3000
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
     volumes:
       # ソースコードのホットリロード用
       - ./src:/app/src

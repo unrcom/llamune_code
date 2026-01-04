@@ -333,6 +333,35 @@ export async function chatWithModel(
     request.options = parameters;
   }
 
+  // Ollamaへの送信内容をログ出力（デバッグ用）
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🔍 [Ollama Request]');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log(`📦 Model: ${modelName}`);
+  console.log(`📊 Message Count: ${messages.length}`);
+  
+  // システムプロンプトを抽出して表示
+  const systemMessage = messages.find(m => m.role === 'system');
+  if (systemMessage) {
+    const preview = systemMessage.content.substring(0, 200);
+    const truncated = systemMessage.content.length > 200 ? '...' : '';
+    console.log(`📋 System Prompt (${systemMessage.content.length} chars):`);
+    console.log(`   ${preview}${truncated}`);
+  } else {
+    console.log('⚠️  No system prompt');
+  }
+  
+  // メッセージ履歴の概要
+  console.log('\n💬 Messages:');
+  messages.forEach((msg, idx) => {
+    const preview = msg.content.substring(0, 100).replace(/\n/g, ' ');
+    const truncated = msg.content.length > 100 ? '...' : '';
+    const icon = msg.role === 'system' ? '📋' : msg.role === 'user' ? '👤' : '🤖';
+    console.log(`   ${idx + 1}. ${icon} [${msg.role}] ${preview}${truncated}`);
+  });
+  
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
   try {
     const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
       method: 'POST',

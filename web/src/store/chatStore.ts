@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useAuthStore } from './authStore';
 import { devtools } from 'zustand/middleware';
 import type { Message, Session, ChatParameters, Model, ParameterPreset } from '../types';
 
@@ -11,6 +12,7 @@ interface ChatState {
   isProfessionalMode: boolean; // あなたの本職を支援するモード（app-development）かどうか
   projectPath: string | null; // プロジェクトディレクトリパス
   messages: Message[];
+  systemPrompt: string | null; // システムプロンプト
 
   // セッション一覧
   sessions: Session[];
@@ -40,6 +42,7 @@ interface ChatState {
   setCurrentDomainPromptId: (domainPromptId: number | null) => void;
   setIsProfessionalMode: (isProfessional: boolean) => void;
   setProjectPath: (projectPath: string | null) => void;
+  setSystemPrompt: (systemPrompt: string | null) => void;
   addMessage: (message: Message) => void;
   setMessages: (messages: Message[]) => void;
   removeLastAssistantMessage: () => Message | null;
@@ -70,6 +73,7 @@ export const useChatStore = create<ChatState>()(
       isProfessionalMode: false,
       projectPath: null,
       messages: [],
+      systemPrompt: null,
   sessions: [],
   models: [],
   presets: [],
@@ -98,6 +102,7 @@ export const useChatStore = create<ChatState>()(
     console.log('📂 setProjectPath called with:', projectPath);
     set({ projectPath: projectPath });
   },
+  setSystemPrompt: (systemPrompt) => set({ systemPrompt }),
   addMessage: (message) => set((state) => ({
     messages: [...state.messages, message]
   })),
@@ -148,23 +153,53 @@ export const useChatStore = create<ChatState>()(
     isRetryPending: isPending,
     retryOriginalMessage: originalMessage ?? null,
   }),
-  acceptRetry: () => set({
-    isRetryPending: false,
-    retryOriginalMessage: null,
-  }),
-  rejectRetry: () => set((state) => {
+  acceptRetry: () => {
+    const state = useChatStore.getState();
+    if (!state.currentSessionId) return;
+
+    // APIを呼び出して古いメッセージを削除
+    fetch('/api/chat/retry/accept', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${useAuthStore.getState().tokens?.accessToken || ''}`,
+      },
+      body: JSON.stringify({ sessionId: state.currentSessionId }),
+    }).catch(error => console.error('Accept retry failed:', error));
+
+    set({
+      isRetryPending: false,
+      retryOriginalMessage: null,
+      systemPrompt: null,
+    });
+  },
+  rejectRetry: () => {
+    const state = useChatStore.getState();
+    if (!state.currentSessionId) return;
+
+    // APIを呼び出して新しいメッセージを削除
+    fetch('/api/chat/retry/reject', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${useAuthStore.getState().tokens?.accessToken || ''}`,
+      },
+      body: JSON.stringify({ sessionId: state.currentSessionId }),
+    }).catch(error => console.error('Reject retry failed:', error));
+
     // 最後のメッセージを削除して元のメッセージを復元
     const messages = [...state.messages];
     messages.pop(); // 新しい回答を削除
     if (state.retryOriginalMessage) {
       messages.push(state.retryOriginalMessage); // 元の回答を復元
     }
-    return {
+    set({
       messages,
       isRetryPending: false,
       retryOriginalMessage: null,
-    };
-  }),
+      systemPrompt: null,
+    });
+  },
   resetChat: () => set((state) => ({
     currentSessionId: null,
     currentDomainPromptId: null,
@@ -174,6 +209,7 @@ export const useChatStore = create<ChatState>()(
     error: null,
     isRetryPending: false,
     retryOriginalMessage: null,
+    systemPrompt: null,
   })),
   setMobileView: (view) => set({ mobileView: view }),
   setCancelStreaming: (fn) => set({ cancelStreaming: fn }),

@@ -249,15 +249,17 @@ export function saveConversation(
   model: string,
   messages: ChatMessage[],
   userId?: number,
-  projectPath?: string
+  projectPath?: string,
+  domainPromptId?: number,
+  systemPrompt?: string
 ): number {
   const db = initDatabase();
   const now = new Date().toISOString();
 
-  // セッションを作成
+  // セッションを作成（システムプロンプトのスナップショットを保存）
   const sessionResult = db
-    .prepare('INSERT INTO sessions (model, user_id, project_path, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
-    .run(model, userId || null, projectPath || null, now, now);
+    .prepare('INSERT INTO sessions (model, user_id, project_path, domain_prompt_id, system_prompt_snapshot, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .run(model, userId || null, projectPath || null, domainPromptId || null, systemPrompt || null, now, now);
 
   const sessionId = sessionResult.lastInsertRowid as number;
 
@@ -276,6 +278,7 @@ export function saveConversation(
   );
 
   for (const message of messages) {
+    console.log('🔍 Saving message:', { role: message.role, model: message.model, preset_id: (message as any).preset_id });
     const encryptedContent = encrypt(message.content);
     const encryptedThinking = message.thinking ? encrypt(message.thinking) : null;
     insertMessage.run(sessionId, message.role, encryptedContent, now, message.model || null, encryptedThinking);
@@ -297,13 +300,22 @@ export function appendMessagesToSession(
 
   // メッセージを一括追加（暗号化付き）
   const insertMessage = db.prepare(
-    'INSERT INTO messages (session_id, role, content, created_at, model, thinking) VALUES (?, ?, ?, ?, ?, ?)'
+    'INSERT INTO messages (session_id, role, content, created_at, model, thinking, preset_id) VALUES (?, ?, ?, ?, ?, ?, ?)'
   );
 
   for (const message of messages) {
+    console.log('🔍 Saving message:', { role: message.role, model: message.model, preset_id: (message as any).preset_id });
     const encryptedContent = encrypt(message.content);
     const encryptedThinking = message.thinking ? encrypt(message.thinking) : null;
-    insertMessage.run(sessionId, message.role, encryptedContent, now, message.model || null, encryptedThinking);
+    insertMessage.run(
+      sessionId,
+      message.role,
+      encryptedContent,
+      now,
+      message.model || null,
+      encryptedThinking,
+      (message as any).preset_id || null
+    );
   }
 
   // セッションの更新日時を更新
@@ -399,10 +411,11 @@ export function updateSessionTitle(sessionId: number, title: string, userId?: nu
 export function getSession(sessionId: number, userId?: number): {
   session: ChatSession & { user_id?: number };
   messages: ChatMessage[];
+  systemPrompt?: string;
 } | null {
   const db = initDatabase();
 
-  // セッション情報を取得
+  // セッション情報を取得（domain_prompt_id、system_prompt_snapshotも取得）
   const session = db
     .prepare(
       `
@@ -413,6 +426,8 @@ export function getSession(sessionId: number, userId?: number): {
         s.updated_at,
         s.title,
         s.project_path,
+        s.domain_prompt_id,
+        s.system_prompt_snapshot,
         COUNT(m.id) as message_count,
         s.user_id,
         (
@@ -428,7 +443,7 @@ export function getSession(sessionId: number, userId?: number): {
       GROUP BY s.id
     `
     )
-    .get(sessionId) as (ChatSession & { user_id?: number }) | undefined;
+    .get(sessionId) as (ChatSession & { user_id?: number; domain_prompt_id?: number; system_prompt_snapshot?: string }) | undefined;
 
   if (!session) {
     db.close();
@@ -452,6 +467,20 @@ export function getSession(sessionId: number, userId?: number): {
     } catch (error) {
       console.error('Failed to decrypt preview:', error);
     }
+  }
+
+  // システムプロンプトを取得
+  // 優先順位: 1. system_prompt_snapshot（保存時のスナップショット）, 2. domain_promptsから取得
+  let systemPrompt: string | undefined;
+  if (session.system_prompt_snapshot) {
+    // スナップショットがあればそれを使用（セッション作成時のプロンプトを正確に再現）
+    systemPrompt = session.system_prompt_snapshot;
+  } else if (session.domain_prompt_id) {
+    // スナップショットがない場合（既存セッション）はdomain_promptsから取得
+    const domainPrompt = db
+      .prepare('SELECT system_prompt FROM domain_prompts WHERE id = ?')
+      .get(session.domain_prompt_id) as { system_prompt?: string } | undefined;
+    systemPrompt = domainPrompt?.system_prompt;
   }
 
   // メッセージを取得（論理削除されていないもののみ、thinkingも含む）
@@ -484,6 +513,7 @@ export function getSession(sessionId: number, userId?: number): {
   return {
     session,
     messages,
+    systemPrompt,
   };
 }
 
@@ -1139,17 +1169,8 @@ export function getDomainPromptsByDomainId(domainId: number): DomainPrompt[] {
 
     db.close();
     
-    // system_promptを復号（暗号化されている場合のみ）
-    return prompts.map(prompt => {
-      if (prompt.system_prompt && isEncrypted(prompt.system_prompt)) {
-        try {
-          prompt.system_prompt = decrypt(prompt.system_prompt);
-        } catch (error) {
-          console.error('Failed to decrypt system_prompt:', error);
-        }
-      }
-      return prompt;
-    });
+    // システムプロンプトは平文で保存されているため、復号化不要
+    return prompts;
   } catch (error) {
     db.close();
     throw error;
@@ -1171,15 +1192,7 @@ export function getDomainPromptById(id: number): DomainPrompt | null {
     
     if (!prompt) return null;
     
-    // system_promptを復号（暗号化されている場合のみ）
-    if (prompt.system_prompt && isEncrypted(prompt.system_prompt)) {
-      try {
-        prompt.system_prompt = decrypt(prompt.system_prompt);
-      } catch (error) {
-        console.error('Failed to decrypt system_prompt:', error);
-      }
-    }
-    
+    // システムプロンプトは平文で保存されているため、復号化不要
     return prompt;
   } catch (error) {
     db.close();
@@ -1261,3 +1274,56 @@ export function updateDefaultPrompt(systemPrompt: string, description?: string):
   }
 }
 
+
+/**
+ * セッションの最後から2番目のアシスタントメッセージを削除（Retry採用時）
+ */
+export function deleteSecondLastAssistantMessage(sessionId: number): boolean {
+  const db = initDatabase();
+  try {
+    // セッションの全アシスタントメッセージを取得
+    const assistantMessages = db
+      .prepare('SELECT id FROM messages WHERE session_id = ? AND role = ? ORDER BY id DESC LIMIT 2')
+      .all(sessionId, 'assistant') as { id: number }[];
+
+    if (assistantMessages.length < 2) {
+      console.warn('No second-last assistant message to delete');
+      return false;
+    }
+
+    // 最後から2番目のメッセージを削除
+    const secondLastMessageId = assistantMessages[1].id;
+    db.prepare('DELETE FROM messages WHERE id = ?').run(secondLastMessageId);
+    
+    console.log(`🗑️ Deleted second-last assistant message: ${secondLastMessageId}`);
+    return true;
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * セッションの最後のアシスタントメッセージを削除（Retry破棄時）
+ */
+export function deleteLastAssistantMessage(sessionId: number): boolean {
+  const db = initDatabase();
+  try {
+    // セッションの最後のアシスタントメッセージを取得
+    const lastMessage = db
+      .prepare('SELECT id FROM messages WHERE session_id = ? AND role = ? ORDER BY id DESC LIMIT 1')
+      .get(sessionId, 'assistant') as { id: number } | undefined;
+
+    if (!lastMessage) {
+      console.warn('No assistant message to delete');
+      return false;
+    }
+
+    // 最後のメッセージを削除
+    db.prepare('DELETE FROM messages WHERE id = ?').run(lastMessage.id);
+    
+    console.log(`🗑️ Deleted last assistant message: ${lastMessage.id}`);
+    return true;
+  } finally {
+    db.close();
+  }
+}

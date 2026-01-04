@@ -32,8 +32,10 @@ export class ChatSession {
   private sessionId: number | null;
   private model: string;
   private parameters?: ChatParameters;
+  private presetId?: number | null;
   private userId?: number;
   private systemPrompt?: string;
+  private domainPromptId?: number;
   private lastSavedMessageCount: number;
   private projectPath?: string;
 
@@ -44,14 +46,18 @@ export class ChatSession {
     parameters?: ChatParameters,
     userId?: number,
     systemPrompt?: string,
-    projectPath?: string
+    projectPath?: string,
+    domainPromptId?: number,
+    presetId?: number | null
   ) {
     this.model = model;
     this.sessionId = sessionId || null;
     this.messages = messages || [];
     this.parameters = parameters;
+    this.presetId = presetId;
     this.userId = userId;
     this.projectPath = projectPath;
+    this.domainPromptId = domainPromptId;
 
     // systemPromptが未指定の場合、DBからデフォルトプロンプトを取得
     if (!systemPrompt) {
@@ -95,6 +101,7 @@ export class ChatSession {
       this.messages.push({
         role: 'user',
         content,
+        model: this.model,
       });
     }
 
@@ -188,6 +195,7 @@ export class ChatSession {
                   role: 'assistant',
                   content: assistantMessage,
                   tool_calls: toolCalls,
+                  model: this.model,
                 } as any);
 
                 // ツールを実行
@@ -200,6 +208,7 @@ export class ChatSession {
                   this.messages.push({
                     role: 'tool',
                     content: toolResult,
+                    model: this.model,
                   } as any);
                 }
 
@@ -212,6 +221,8 @@ export class ChatSession {
                   role: 'assistant',
                   content: assistantMessage,
                   thinking: thinkingContent || undefined,
+                  model: this.model,
+                  preset_id: this.presetId,
                 });
               }
             }
@@ -246,6 +257,9 @@ export class ChatSession {
 
     // メッセージを削除
     this.messages.splice(lastAssistantIndex, 1);
+    
+    // Retry時: 削除したassistantメッセージ分を減算
+    this.lastSavedMessageCount = Math.max(0, this.lastSavedMessageCount - 1);
 
     // モデルを切り替える場合
     if (modelName && modelName !== this.model) {
@@ -263,29 +277,15 @@ export class ChatSession {
           repeat_penalty: preset.repeat_penalty ?? undefined,
           num_ctx: preset.num_ctx ?? undefined,
         };
+        this.presetId = presetId;
       }
+    } else if (presetId === null) {
+      // プリセットをクリア
+      this.presetId = null;
     }
 
-    // 最後のユーザーメッセージを再送信
-    const lastUserMessage = [...this.messages]
-      .reverse()
-      .find((m) => m.role === 'user');
-
-    if (!lastUserMessage) {
-      throw new Error('再試行するユーザーメッセージがありません');
-    }
-
-    // ユーザーメッセージを削除してから再送信
-    const lastUserIndex = this.messages.map((m, i) => (m.role === 'user' ? i : -1))
-      .filter((i) => i !== -1)
-      .pop();
-
-    if (lastUserIndex !== undefined && lastUserIndex !== -1) {
-      this.messages.splice(lastUserIndex, 1);
-    }
-
-    // 再送信
-    yield* this.sendMessage(lastUserMessage.content);
+    // 再送信（ユーザーメッセージは削除せず、空文字でアシスタント応答のみ再生成）
+    yield* this.sendMessage('');
 
     return '';
   }
@@ -334,6 +334,8 @@ export class ChatSession {
         this.messages,
         this.userId,
         this.projectPath,
+        this.domainPromptId,
+        this.systemPrompt,
       );
       this.lastSavedMessageCount = this.messages.length;
     }
@@ -360,6 +362,13 @@ export class ChatSession {
    */
   getModel(): string {
     return this.model;
+  }
+
+  /**
+   * システムプロンプトを取得
+   */
+  getSystemPrompt(): string | undefined {
+    return this.systemPrompt;
   }
 
   /**
