@@ -645,6 +645,8 @@ router.delete('/sessions/:id', (req: Request, res: Response) => {
 
 /**
  * POST /api/chat/retry/accept - Retry採用（古いメッセージを削除）
+ * 注: セッションのメインモデル（sessions.model）は変更しない
+ *     Retryは一時的に別モデルで回答を生成するだけ
  */
 router.post('/retry/accept', (req: Request, res: Response) => {
   try {
@@ -674,6 +676,7 @@ router.post('/retry/accept', (req: Request, res: Response) => {
 
     // 最後から2番目のアシスタントメッセージを削除
     const success = deleteSecondLastAssistantMessage(sessionId);
+    
     res.json({ success, sessionId });
   } catch (error) {
     const apiError: ApiError = {

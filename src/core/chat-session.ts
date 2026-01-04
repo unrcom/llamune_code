@@ -261,9 +261,12 @@ export class ChatSession {
     // Retry時: 削除したassistantメッセージ分を減算
     this.lastSavedMessageCount = Math.max(0, this.lastSavedMessageCount - 1);
 
-    // モデルを切り替える場合
+    // 元のモデルを保存
+    const originalModel = this.model;
+
+    // モデルを一時的に切り替える（DBは更新しない）
     if (modelName && modelName !== this.model) {
-      this.switchModel(modelName);
+      this.model = modelName;
     }
 
     // プリセットを適用する場合
@@ -286,6 +289,10 @@ export class ChatSession {
 
     // 再送信（ユーザーメッセージは削除せず、空文字でアシスタント応答のみ再生成）
     yield* this.sendMessage('');
+
+    // モデルを元に戻す（セッションのモデルは変更しない）
+    // 採用時にのみDBのモデルを更新する
+    this.model = originalModel;
 
     return '';
   }

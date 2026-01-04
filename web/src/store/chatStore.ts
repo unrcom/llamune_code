@@ -158,6 +158,8 @@ export const useChatStore = create<ChatState>()(
     if (!state.currentSessionId) return;
 
     // APIを呼び出して古いメッセージを削除
+    // 注: セッションのメインモデル（currentModel）は変更しない
+    //     Retryは一時的に別モデルで回答を生成するだけ
     fetch('/api/chat/retry/accept', {
       method: 'POST',
       headers: {
