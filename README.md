@@ -3,6 +3,12 @@
 [![Status](https://img.shields.io/badge/status-alpha-green)]()
 [![License](https://img.shields.io/badge/license-MIT-blue)]()
 
+> ⚠️ **リポジトリステータス: 安定版（機能凍結）**
+> 
+> このリポジトリは**安定版**として機能を凍結しています。今後は不具合対応のみ継続します。
+> 
+> 新機能の開発は、データモデルを再設計した新リポジトリ **[llamune](https://github.com/unrcom/llamune)** で進めています。
+
 ローカルLLMを活用した、完全クローズド環境で動作するコーディング支援プラットフォーム
 
 ## 🎯 概要
