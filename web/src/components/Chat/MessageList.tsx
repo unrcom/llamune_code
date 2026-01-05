@@ -16,6 +16,7 @@ export function MessageList({ messages, streamingContent, onRetry, isStreaming, 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const lastScrollTop = useRef(0);
+  const prevMessageCountRef = useRef(0);
 
   // スクロール位置を監視して、ユーザーが最下部にいるかチェック
   const handleScroll = () => {
@@ -38,11 +39,22 @@ export function MessageList({ messages, streamingContent, onRetry, isStreaming, 
     }
   };
 
-  // メッセージが追加されたら、最下部にいる場合のみ自動スクロール
+  // ストリーミング中または新しいメッセージが1件追加された場合のみ自動スクロール
+  // セッション読み込み時（メッセージが一括で設定される場合）はスキップ
   useEffect(() => {
-    if (shouldAutoScroll && messagesEndRef.current) {
+    const currentCount = messages.length;
+    const prevCount = prevMessageCountRef.current;
+    
+    // セッション読み込み時（メッセージ数が大きく変わった場合）はスクロールしない
+    // 新しいメッセージが1件追加された場合、またはストリーミング中のみスクロール
+    const isNewMessageAdded = currentCount === prevCount + 1;
+    const isSessionLoaded = prevCount === 0 && currentCount > 1;
+    
+    if (shouldAutoScroll && messagesEndRef.current && !isSessionLoaded && (isNewMessageAdded || streamingContent)) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
+    
+    prevMessageCountRef.current = currentCount;
   }, [messages, streamingContent, shouldAutoScroll]);
 
   // userとassistantのメッセージのみをフィルター（空のメッセージも除外）
